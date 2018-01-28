@@ -30,6 +30,8 @@ length(unique(demographic.table$SubjectID))
 # Extract subjects with full demographic data
 subject.full.demographic = unique(demographic.table$SubjectID)
 data.allforms %>% filter(SubjectID %in% subject.full.demographic) -> data.all
+rm(data.allforms, data.allforms_leaderboard, data.allforms_training, data.allforms_training2, 
+   data.allforms_validation, demographic, subject.full.demographic)
 
 # FVC -> fvc.table 로 정리
 
@@ -68,7 +70,7 @@ slope.tab = as.data.frame(fvc_slope); slope.tab$SubjectID = rownames(slope.tab)
 merge(slope.tab, fvc.meta, by="SubjectID", all.y = T) -> fvc.tab
 # Remove n (number of datapoints)
 fvc.table = fvc.tab[,1:5]
-
+rm(fvc.all, fvc.meta, fvc.sub, fvc.tab, fvc_slope, slope.tab, subject.fvc.one.datapoint)
 
 # ALSFRS -> alsfrs.table 로 정리 
 
@@ -92,6 +94,7 @@ no.dup = temp[temp$n == 1,]
 alsfrs = rbind(no.dup, dup.mean); alsfrs = alsfrs[,1:4]
 # Spread dataframe 
 alsfrs.tab = spread(alsfrs, feature_name, feature_value)
+rm(dup, dup.mean, no.dup, alsfrs)
 
 # Calculate fvc_mean, _min, _max 
 fvc.all %>%
