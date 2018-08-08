@@ -16,16 +16,28 @@ data.surv_validation<-read.delim("surv_response_PROACT_validation.txt",sep="|", 
 death_survival <- rbind(data.surv_training,data.surv_training2,data.surv_leaderboard,data.surv_validation)
 death_survival$status <- as.logical(death_survival$status)
 
+# Demographic
+
+data.allforms %>% filter(form_name == "Demographic") %>% 
+  select(SubjectID, feature_name, feature_value) -> temp
+demographic = spread(temp, feature_name, feature_value)
+demographic = droplevels(demographic)
+demographic$Age = as.numeric(as.character(demographic$Age))
+demographic.table = demographic[complete.cases(demographic),]
+# Number of subjects with complete demographic information (age, gender, race)
+length(unique(demographic.table$SubjectID)) # 8,646
+
+# Extract subjects with full demographic data
+subject.full.demographic = unique(demographic.table$SubjectID)
+data.allforms %>% filter(SubjectID %in% subject.full.demographic) -> data.all
 
 # ALSFRS form만 불러오기
-data.alsfrs1 <- droplevels(data.allforms[data.allforms$form_name=="ALSFRS", ])
+data.alsfrs1 <- droplevels(data.all[data.all$form_name=="ALSFRS", ])
 data.alsfrs1 = subset(data.alsfrs1,select=-c(form_name,feature_unit))
 data.alsfrs1$feature_value <- as.numeric(as.character(data.alsfrs1$feature_value))
 data.alsfrs1$feature_delta <- as.numeric(as.character(data.alsfrs1$feature_delta))
 
-
 # ALSFRS에서 같은 환자가 같은 시점에 2번 측정한 데이터 처리 by 평균 
-data.alsfrs1 <- subset(data.alsfrs1,!(SubjectID==137943 & feature_delta==371))
 a <- mutate(group_by(data.alsfrs1,SubjectID,feature_name,feature_delta),n=n())
 b=subset(a,n>1)
 c=subset(a,n==1)
@@ -40,13 +52,30 @@ alsfrsfull <- spread(d,feature_name,feature_value)
 
 # feature_delta가 missing이거나 각 item 중 하나라도 missing이 있는 데이터 제외
 alsfrsfull <- droplevels(filter(alsfrsfull, !is.na(feature_delta)))
-alsfrsfull <- droplevels(filter(alsfrsfull,!is.na(Q1_Speech)&!is.na(Q2_Salivation)&!is.na(Q3_Swallowing)&!is.na(Q4_Handwriting)&(!(is.na(Q5a_Cutting_without_Gastrostomy)&is.na(Q5b_Cutting_with_Gastrostomy)))&!is.na(Q6_Dressing_and_Hygiene)&!is.na(Q7_Turning_in_Bed)&!is.na(Q8_Walking)&!is.na(Q9_Climbing_Stairs)&!(is.na(Q10_Respiratory)&(is.na(R1_Dyspnea)|is.na(R2_Orthopnea)|is.na(R3_Respiratory_Insufficiency)))))
+alsfrsfull <- droplevels(filter(alsfrsfull,
+                                !is.na(Q1_Speech)
+                                &!is.na(Q2_Salivation)
+                                &!is.na(Q3_Swallowing)
+                                &!is.na(Q4_Handwriting)
+                                &(!(is.na(Q5a_Cutting_without_Gastrostomy)
+                                    &is.na(Q5b_Cutting_with_Gastrostomy)))
+                                &!is.na(Q6_Dressing_and_Hygiene)
+                                &!is.na(Q7_Turning_in_Bed)
+                                &!is.na(Q8_Walking)
+                                &!is.na(Q9_Climbing_Stairs)
+                                &!(is.na(Q10_Respiratory)&
+                                     (is.na(R1_Dyspnea)|is.na(R2_Orthopnea)|
+                                        is.na(R3_Respiratory_Insufficiency)))))
 
 # alsfrs인지 alsfrs-r인지 구별하는 변수 추가
 alsfrsfull$if_R <- !is.na(alsfrsfull$R1_Dyspnea) & !is.na(alsfrsfull$R3_Respiratory_Insufficiency)
 
 # Q10과 R1,R2,R3을 적절하게 고려하여 Q10R 점수로 변환
 # Q10R에 따라 ALSFRS_Total도 ALSFRS_TotalR로 변환
+alsfrsfull -> temp 
+temp$Q10_R
+
+
 alsfrsfull$Q10R1=ifelse(alsfrsfull$R1_Dyspnea==4,4,ifelse(alsfrsfull$R1_Dyspnea>1,3,ifelse(alsfrsfull$R1_Dyspnea>0,2,1)))
 alsfrsfull$Q10R3=ifelse(alsfrsfull$R3_Respiratory_Insufficiency==2,ifelse(alsfrsfull$R1_Dyspnea>1,2,1),ifelse(alsfrsfull$R3_Respiratory_Insufficiency<2 & alsfrsfull$R3_Respiratory_Insufficiency>0,1,ifelse(alsfrsfull$R3_Respiratory_Insufficiency==0,0,NA)))
 alsfrsfull$Q10R3[is.na(alsfrsfull$Q10R3)]=alsfrsfull$Q10R1[is.na(alsfrsfull$Q10R3)]  
