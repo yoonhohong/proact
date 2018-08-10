@@ -11,6 +11,13 @@ data.allforms_validation<-read.delim("all_forms_PROACT_validation_full.txt",sep=
 data.allforms <- rbind(data.allforms_training,data.allforms_training2,data.allforms_leaderboard,data.allforms_validation)
 length(unique(data.allforms$SubjectID)) # 10723 patients
 
+# For making a material for data medicine course in 2018...
+# set.seed(1)
+# sampl = sample(unique(data.allforms$SubjectID), 500)
+# data.sampl = data.allforms %>%
+#   filter(SubjectID %in% sampl)
+# write.table(data.sampl, file = "proact_sample.txt", quote = F, sep="|", row.names = F, col.names = T)
+
 # Demographic
 data.allforms %>% filter(form_name == "Demographic") %>% 
   select(SubjectID, feature_name, feature_value) -> temp
