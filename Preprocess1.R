@@ -13,10 +13,32 @@ length(unique(data.allforms$SubjectID)) # 10723 patients
 
 # For making a material for data medicine course in 2018...
 # set.seed(1)
-# sampl = sample(unique(data.allforms$SubjectID), 500)
-# data.sampl = data.allforms %>%
+# data.allforms %>%
+#   filter(!(form_name %in% c("Lab Test", "Adverse Event",
+#                             "Concomitant Medication"))) -> Others
+# 
+# data.allforms %>%
+#   filter((form_name == "Lab Test")) -> Lab
+# Lab %>%
+#   filter(feature_name %in% c("Absolute Band Neutrophil Count",
+#                              "Absolute Neutrophil Count",
+#                              "Absolute Segmented Neutrophil Count",
+#                              "Absolute Lymphocyte count",
+#                              "Absolute Lymphocyte Count",
+#                              "Lymphocytes",
+#                              "Neutrophils",
+#                              "C-Reactive Protein",
+#                              "CK",
+#                              "Creatinine",
+#                              "Uric Acid")) -> Lab.sub
+# 
+# df = rbind(Lab.sub, Others)
+# sampl = sample(unique(df$SubjectID), 2000)
+# 
+# df.sampl = df %>%
 #   filter(SubjectID %in% sampl)
-# write.table(data.sampl, file = "proact_sample.txt", quote = F, sep="|", row.names = F, col.names = T)
+# df.sampl = droplevels(df.sampl)
+# write.table(df.sampl, file = "proact_sample.txt", quote = F, sep="|", row.names = F, col.names = T)
 
 # Demographic
 data.allforms %>% filter(form_name == "Demographic") %>% 
