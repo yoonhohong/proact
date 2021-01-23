@@ -1,7 +1,10 @@
+# Set working directory 
+setwd("/Users/hong/Dropbox/ALSmaster/PROACT")
+
+# Load packages
 library(dplyr)
 library(tidyr)
 library(survival)
-
 
 # 데이터 read
 data.allforms_training<-read.delim("all_forms_PROACT_training.txt",sep="|", header=T)
