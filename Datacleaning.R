@@ -1,4 +1,4 @@
-setwd("/Users/hong/Documents/ALSMaster_data")
+setwd("/Users/hong/Dropbox/ALSMaster/PROACT")
 
 library(dplyr)
 library(tidyr)
@@ -26,7 +26,7 @@ fvc = data.all %>%
   select(SubjectID, feature_name, feature_value, feature_delta)
 fvc = unique(fvc)
 fvc$feature_value = round(as.numeric(fvc$feature_value))
-fvc$feature_delta = as.numeric(fvc$feature_value)
+fvc$feature_delta = as.numeric(fvc$feature_delta)
 
 fvc$id_delta = paste(fvc$SubjectID, fvc$feature_delta, 
                      sep = "_")
@@ -40,8 +40,10 @@ names(temp2)[2] = "fvc_percent"
 fvc = temp2 
 fvc = fvc[complete.cases(fvc),]
 range(fvc$feature_delta)
+fvc = fvc %>%
+  filter(feature_delta >= 0)
 
-length(unique(fvc$SubjectID)) # 7269 patients 
+length(unique(fvc$SubjectID)) # 7312 patients 
 table(table(fvc$SubjectID))
 
 write.csv(fvc, "fvc.csv", row.names = F, quote = F)
@@ -52,7 +54,7 @@ svc = data.all %>%
   filter(feature_name == "svc_percent") %>%
   select(SubjectID, feature_name, feature_value, feature_delta)
 svc$feature_value = round(as.numeric(svc$feature_value))
-svc$feature_delta = as.numeric(svc$feature_value)
+svc$feature_delta = as.numeric(svc$feature_delta)
 svc = unique(svc)
 svc$id_delta = paste(svc$SubjectID, svc$feature_delta, sep = "_")
 temp = svc %>%
@@ -66,7 +68,7 @@ svc = temp2
 svc = svc[complete.cases(svc),]
 range(svc$feature_delta)
 
-length(unique(svc$SubjectID)) # 694 patients 
+length(unique(svc$SubjectID)) # 695 patients 
 table(table(svc$SubjectID))
 
 write.csv(svc, "svc.csv", row.names = F, quote = F)
@@ -75,7 +77,7 @@ write.csv(svc, "svc.csv", row.names = F, quote = F)
 # Extract data with feature_delta < 92
 fvc_3mo = fvc %>% 
   filter(feature_delta >= 0 & feature_delta < 92)
-length(unique(fvc_3mo$SubjectID)) # 6303
+length(unique(fvc_3mo$SubjectID)) # 7217
 
 # Calculate fvc_mean, _min, _max 
 fvc_3mo_meta = fvc_3mo %>%
@@ -108,7 +110,7 @@ write.csv(fvc.tab, "fvc_3mo_meta.csv", quote=F, row.names = F)
 # Extract data with feature_delta < 92
 svc_3mo = svc %>% 
   filter(feature_delta >= 0 & feature_delta < 92)
-length(unique(svc_3mo$SubjectID)) # 625 patients
+length(unique(svc_3mo$SubjectID)) # 695 patients
 
 # Calculate svc_mean, _min, _max 
 svc_3mo_meta = svc_3mo %>%
