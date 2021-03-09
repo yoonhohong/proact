@@ -14,6 +14,16 @@ data.allforms_validation<-read.delim("all_forms_PROACT_validation_full.txt",sep=
 data.allforms <- rbind(data.allforms_training,data.allforms_training2,data.allforms_leaderboard,data.allforms_validation)
 length(unique(data.allforms$SubjectID)) # 10723 patients
 
+# ALSFRS_slope datasets 
+slope_training = read.delim("ALSFRS_slope_PROACT_training.txt", sep = "|", header = T)
+slope_training2 = read.delim("ALSFRS_slope_PROACT_training2.txt", sep = "|", header = T)
+slope_validation = read.delim("ALSFRS_slope_PROACT_validation.txt", sep = "|", header = T)
+slope_leaderboard = read.delim("ALSFRS_slope_PROACT_leaderboard.txt", sep = "|", header = T)
+slope_all = rbind(slope_training, slope_training2, slope_leaderboard, slope_validation)
+dim(slope_all)
+length(unique(slope_all$SubjectID)) # 3096 patients 
+write.csv(slope_all, "ALSFRS_slope.csv", row.names = F, quote = F)
+
 # Demographic
 data.allforms %>% filter(form_name == "Demographic") %>% 
   select(SubjectID, feature_name, feature_value) -> temp
@@ -107,6 +117,8 @@ write.csv(alsfrs_original_wide, "ALSFRS_original.csv",
           row.names = F, quote = F)
 write.csv(alsfrs_revised_wide, "ALSFRS_revised.csv",
           row.names = F, quote = F)
+
+
 
 # ALSFRS original vs. revised total scores
 # meta-features during the first 3 months
