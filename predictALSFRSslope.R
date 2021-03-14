@@ -145,7 +145,7 @@ ggplot(df_eval, aes(slope_obs, slope_pred)) +
 
 rmse(df_eval$slope_obs, df_eval$slope_pred)
 mae(df_eval$slope_obs, df_eval$slope_pred)
-
+cor(df_eval) # 0.31
 # How to improve performance of the prediction model???
 
 # tg = data.frame(mtry = seq(2,10,by=2))
