@@ -76,12 +76,12 @@ The whole datasets were preprocessed as followings, saving output files as csv f
 ## Imputation
 
 ## Progression prediction (slope of ALSFRS total score)
-predict the slope of ALSFRS total scores 
-features: Age, Gender, onset_site, onset_delta, ALSFRS total score, FVC  
-algorithm: linear regression
-results: Rsquared = 0.099, MAE = 0.45, RMSE = 0.57, r = 0.31
-![scatter_plot_slope_obs_pred_lm](/images/slope_obs_pred_lm.png)
-how to improve the model performance? 
+predict the slope of ALSFRS total scores    
+features: Age, Gender, onset_site, onset_delta, ALSFRS total score, FVC     
+algorithm: linear regression   
+results: Rsquared = 0.099, MAE = 0.45, RMSE = 0.57, r = 0.31   
+![scatter_plot_slope_obs_pred_lm](/images/slope_obs_pred_lm.png)   
+how to improve the model performance?    
 
 
 ## Survival/stage prediction 
