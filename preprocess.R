@@ -93,14 +93,14 @@ dim(alsfrs_original_wide) # 59,287 records
 length(unique(alsfrs_original_wide$SubjectID)) # 6,514 patients 
 table(table(alsfrs_original_wide$SubjectID))
 
-temp = alsfrs_original_wide[,-c(9,10)]
+temp = alsfrs_original_wide
 summary(temp) # NA in Q10_Respiratory: 23063 records 
 temp$Q10_Respiratory = ifelse(is.na(temp$Q10_Respiratory), 
                               temp$respiratory, 
                               temp$Q10_Respiratory) 
 alsfrs_original_wide = temp
 alsfrs_original_wide = 
-  alsfrs_original_wide[,c(1,2,3,7,9:16,8,6,4,5,18,17)]
+  alsfrs_original_wide[,c(1,2,3,7,9:18,8,6,4,5,20,19)]
 
 # ALSFRS revised 
 alsfrs_revised_wide = alsfrs_wide %>%
