@@ -5,7 +5,8 @@
 - To develop ML-based subtyping (clustering)/staging of ALS patients  
 
 ## Dataset 
-PRO-ACT database 
+PRO-ACT database  
+https://nctu.partners.org/proact   
 
 Accessed Sept. 2017 
 DB contains 10,723 patients (including all datasets for training, training2, leaderboard, validation)
@@ -89,9 +90,32 @@ how to improve the model performance?
 ## Clustering (cross-sectional)
 
 ## Clustering (longitudinal)  
+based on ALSFRS trajectory (item scores or dimension scores)     
+optimal number of clusters?     
+onset_site    
+differentiate between local progression rate and spread (to adjacent region) rate...       
+
 
 ## ML-based Staging  
+HMM model   
+hidden state: disease stages      
+observable states: ALSFRS_original or ALSFRS_revised scores (item scores or dimension scores)      
 
+why not total scores? 
+dimensionality analysis argues against the use of ALSFRS-R as a single score because the scale lacks unidimensionality.   
+https://pubmed.ncbi.nlm.nih.gov/23516308/    
+exploratory factor analysis revealed three factors representing the following domains: 
+(1) bulbar function; 
+(2) fine and gross motor function; and 
+(3) respiratory function.    
 
+consider this...   
+collapsing the scale's 5 level ratings into 3 levels improved its metric quality.   
 
+number of stages: 5 (arbitrary)   
+uneven time data (interval, whole follow-up duration)   
+
+can we estimate disease stage at specific time point (e.g., at enrollment) w/o the whole sequence of observations?      
+
+comparison with King's and Mito's staging system   
 
