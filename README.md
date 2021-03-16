@@ -101,19 +101,26 @@ HMM model
 hidden state: disease stages      
 observable states: ALSFRS_original or ALSFRS_revised scores (item scores or dimension scores)      
 
+can try RNN      
+
 why not total scores? 
 dimensionality analysis argues against the use of ALSFRS-R as a single score because the scale lacks unidimensionality.   
 https://pubmed.ncbi.nlm.nih.gov/23516308/    
+
 exploratory factor analysis revealed three factors representing the following domains: 
 (1) bulbar function; 
 (2) fine and gross motor function; and 
 (3) respiratory function.    
 
+can try five dimensions as well    
+mouth, hands, leg, trunk, respiratory    
+
 consider this...   
-collapsing the scale's 5 level ratings into 3 levels improved its metric quality.   
+collapsing the scale's 5 level ratings into 3 levels improved its metric quality       
 
 number of stages: 5 (arbitrary)   
 uneven time data (interval, whole follow-up duration)   
+last observation carried forward    
 
 can we estimate disease stage at specific time point (e.g., at enrollment) w/o the whole sequence of observations?      
 
