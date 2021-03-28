@@ -75,19 +75,44 @@ The whole datasets were preprocessed as followings, saving output files as csv f
 -> lab.csv 
 
 ## Imputation
+multiple imputation using mice package    
 
-## Progression prediction (slope of ALSFRS total score)
-predict the slope of ALSFRS total scores    
-features: Age, Gender, onset_site, onset_delta, ALSFRS total score, FVC     
-algorithm: linear regression   
-results: Rsquared = 0.099, MAE = 0.45, RMSE = 0.57, r = 0.31   
-![scatter_plot_slope_obs_pred_lm](/images/slope_obs_pred_lm.png)   
-how to improve the model performance?    
+
+## Progression prediction (slope of ALSFRS total score)  
+
+Goal: build a model to predict the slope of ALSFRS total scores     
+
+Features:    
+- Age, Gender, onset_delta, diag_delta, onset2delta (meta feature, exclude cases with onset2delta <= 0)   
+- ALSFRS (total score, item scores, three dimension - bulbar, motor, respiratory scores), FVC  
+- calculate mean values over the first 3 months for the time-resolved features (ALSFRS, FVC)    
+- ALSFRS Q5a and Q5b item scores were excluded, and instead made a new feature (gastrostomy) based on these features    
+- ALSFRS bulbar dimension score did not include Q2_salivation because of the symptomatic treatments available       
+- not included onset_site because of a large proportion of missing values (corresponding information could be inferred from the ALSFRS item or dimension scores)           
+- exclude cases with missing values in onset_delta because of a large proportion of missing values (exactly the same cases with missing values in diag_delta)    
+
+Preprocessing: scaling (w/ standard deviation and mean centering)    
+
+Algorithm: linear regression (lasso), random forest      
+
+Results:  
+Correlation plot between observed vs. predicted slope values    
+![scatter_plot_slope_obs_pred](/images/cor_lm_rf.png)     
+
+Comparisons of model performance: MAE, RMSE, Rsquared
+![model_comparison](/images/model_comparisons.png)   
+
+found no significance in paired t-test w/ bonferroni correction  
+but there was a significant difference in Rsquared in raw p-value      
+
+mutual information...   
 
 
 ## Survival/stage prediction 
 
+
 ## Clustering (cross-sectional)
+
 
 ## Clustering (longitudinal)  
 based on ALSFRS trajectory (item scores or dimension scores)     
