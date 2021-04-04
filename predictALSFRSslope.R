@@ -1,9 +1,11 @@
 # predict the slope of ALSFRS total scores 
-# features: Age, Gender, onset_site, onset_delta, ALSFRS total score, FVC  
-# algorithm: lasso linear regression
+# features: Age, Gender, onset_delta, ALSFRS total score, 
+# ALSFRS item and dimension score, FVC  
+# algorithm: lasso linear regression, random forest 
 
 # Set working directory 
-setwd("/Users/hong/Dropbox/ALSmaster/PROACT") # dropbox folder to import datasets 
+setwd("/Users/hong/Dropbox/ALSmaster/PROACT") 
+# dropbox folder to import datasets 
 
 library(dplyr)
 library(ggplot2)
@@ -16,109 +18,15 @@ library(gridExtra)
 
 # Import ALSFRS_slope dataset (target variable, 3-12 mo slope)  
 slope = read.csv("ALSFRS_slope.csv")
-str(slope)
-summary(slope)
 dim(slope) # 3096 patients 
 slope = rename(slope, slope = ALSFRS_slope)
 
-# Import ALSFRS_original datasets 
-alsfrs_orig = read.csv("ALSFRS_original.csv") 
-str(alsfrs_orig)
-length(unique(alsfrs_orig$SubjectID)) # 6514 patients 
-summary(alsfrs_orig)
+# Import predicting feature dataset 
+df = read.csv("PROACT_preprocessed.csv") # need imputed dataset   
 
-## all patients with ALSFRS_slope value (n=3096) 
-## had at least one ALSFRS_original score measured    
-## in contrast, only about a half of the patients had
-## ALSFRS_revised score measured.  
-## we will use ALSFRS original dataset 
-## in order to build prediction model for ALSFRS slope. 
-
-# alsfrs_rev = read.csv("ALSFRS_revised.csv")
-# length(unique(alsfrs_orig$SubjectID)) # 6514 patients 
-# length(unique(alsfrs_rev$SubjectID)) # 3412 patients 
-# alsfrs_both_subj = intersect(unique(alsfrs_orig$SubjectID), 
-#                              unique(alsfrs_rev$SubjectID))
-# length(alsfrs_both_subj) # 3412 patients 
-# all(alsfrs_both_subj == unique(alsfrs_rev$SubjectID))
-# length(intersect(alsfrs_slope$SubjectID, alsfrs_orig$SubjectID)) # 3096 patients
-# length(intersect(alsfrs_slope$SubjectID, alsfrs_rev$SubjectID)) # 1594 patients
-
-demo = read.csv("demographic.csv")
-dim(demo) # 8653 patients 
-str(demo)
-demo = demo %>% select(-Race)
-demo$Gender = factor(demo$Gender)
-
-hx = read.csv("als_hx.csv")
-dim(hx) # 4454 patients 
-str(hx)
-hx = hx %>%
-  filter(onset_delta < diag_delta)
-dim(hx) # 4427 patients
-hx = hx %>%
-  mutate(onset2dx = diag_delta - onset_delta, 
-         diag_delta = -diag_delta, onset_delta = -onset_delta)
-hx$onset_site = factor(hx$onset_site)
-
-# For time resolved featurese; calculate mean scores for each item, 
-# dimension (bulbar, motor, respiratory), and total scores 
-# for bulbar scores, we exclude the item for salivation because 
-# there are some symptomatic treatments for the symptom 
-
-temp = alsfrs_orig[((alsfrs_orig$feature_delta)/365)*12 <= 3,]
-range(temp$feature_delta)
-temp = temp[((temp$feature_delta)/365)*12 >= 0,]
-length(unique(temp$SubjectID)) # 6507 patients 
-table(table(temp$SubjectID))
-temp <- temp %>%
-  group_by(SubjectID) %>%
-  summarise(ALSFRS_Total = mean(ALSFRS_Total), 
-            Q1_Speech = mean(Q1_Speech), 
-            Q2_Salivation = mean(Q2_Salivation), 
-            Q3_Swallowing = mean(Q3_Swallowing), 
-            Q4_Handwriting = mean(Q4_Handwriting), 
-            Q5_Cutting = mean(Q5_Cutting), 
-            Q5a_Cutting_without_Gastrostomy = mean(Q5a_Cutting_without_Gastrostomy),
-            Q5b_Cutting_with_Gastrostomy = mean(Q5b_Cutting_with_Gastrostomy),
-            Q6_Dressing_and_Hygiene = mean(Q6_Dressing_and_Hygiene),
-            Q7_Turning_in_Bed = mean(Q7_Turning_in_Bed),
-            Q8_Walking = mean(Q8_Walking),
-            Q9_Climbing_Stairs = mean(Q9_Climbing_Stairs),
-            Q10_Respiratory = mean(Q10_Respiratory), 
-            Gastrostomy = ifelse(is.na(Q5b_Cutting_with_Gastrostomy), F, T)
-            ) %>%
-  mutate(Bulbar = Q1_Speech + Q3_Swallowing, 
-         Motor = Q4_Handwriting + Q5_Cutting + Q6_Dressing_and_Hygiene + Q7_Turning_in_Bed + Q8_Walking + Q9_Climbing_Stairs, 
-         Gastrostomy = ifelse(is.na(Q5a_Cutting_without_Gastrostomy) & 
-                                is.na(Q5b_Cutting_with_Gastrostomy), NA, Gastrostomy))
-
-alsfrs = temp
-
-fvc = read.csv("fvc.csv")
-temp = fvc %>%
-  filter((feature_delta)/365*12 <= 3) %>%
-  filter(feature_delta >= 0) # 7032 patients 
-range(temp$feature_delta)
-temp = temp %>%
-  group_by(SubjectID) %>%
-  summarise(fvc_percent = mean(fvc_percent))
-fvc = temp
-
-# Merge datasets 
-temp = merge(slope, demo, by = "SubjectID", all.x = T) 
-temp2 = merge(temp, hx, by = "SubjectID", all.x = T)
-temp3 = merge(temp2, alsfrs, by = "SubjectID", all.x = T)
-temp4 = merge(temp3, fvc, by="SubjectID", all.x = T) 
-
-dim(temp4)
-summary(temp4)
-df = temp4 %>%
-  select(-c(SubjectID, Q5a_Cutting_without_Gastrostomy, Q5b_Cutting_with_Gastrostomy))
-
+# 
 # Explore missing data before imputation 
 summary(df)
-df$Gender = factor(df$Gender)
 
 ini = mice(df, maxit = 0)
 table(ini$nmis) # number of variables with missing values

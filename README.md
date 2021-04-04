@@ -9,73 +9,84 @@ PRO-ACT database
 https://nctu.partners.org/proact   
 
 Accessed Sept. 2017 
-DB contains 10,723 patients (including all datasets for training, training2, leaderboard, validation)
+DB contains 4,456,146 records in 10,723 patients (including all datasets for training, training2, leaderboard, validation)
 
 You can download all datasets here.      
 https://www.dropbox.com/sh/3lmi5ii3sgyi7o3/AACeVLTGtSDXSKIaX6P7Hxj2a?dl=0
 
 ## preprocess.R
 
-The whole datasets were preprocessed as followings, saving output files as csv for each category.    
+The whole datasets were preprocessed as followings.   
 
-1. demographic dataset (n=8,653) 
--> demographic.csv 
+### Target variables
 
-2. ALSFRS dataset 
-- duplicates excluded   
-- separate data into two sets (i.e, original vs. revised)   
-- 30,154 records with both ALSFRS original and revised 
--> ALSFRS_original.csv, ALSFRS_revised.csv  
-
-3. ALSFRS and ALSFRS_R total scores meta-features and slope during the first 3 months (>= 0 days & < 92 days)
-- min, max, mean, number of measurements, time from enrollment to the first and to the last measurement, time interval between the first and last measurement, slope estimate by linear regression   
--> alsfrs_total_3mo_meta_slope.csv, alsfrs_r_total_3mo_meta_slope.csv
-
-## survival.R
-1. survival data (n=9080)   
+ALSFRS total score slope during 3-12 months 
+-> ALSFRS_slope.csv (ALSFRS original version)  
+(n=3096 patients)    
+   
+Survival 
 -> survival.csv 
+(n=9080 patients)   
 
-## datacleaning.R
-1. fvc_percent dataset  
-- duplicates excluded    
--> fvc.csv   
+### Predicting feature dataset    
 
-2. svc_percent dataset 
-- duplicates excluded 
--> svc.csv 
+Demographic -> demographic.csv   
+(n=8,646 patients with complete demographic information) 
 
-3. fvc_percent (and svc_percent) meta-features during the first 3 months (>= 0 days & < 92 days) 
-- min, max, mean, number of measurements, time from enrollment to the first and to the last measurement, time interval between the first and last measurement, slope estimates by linear regression   
--> fvc_3mo_meta.csv, svc_3mo_meta.csv   
+ALSFRS  
+- excluded duplicates  
+- separated data into two sets (i.e, original vs. revised) -> ALSFRS_original.csv, ALSFRS_revised.csv  
+- 59,260 records in 6,510 patients (ALSFRS original) during 0 to 2,114 days 
+- 30,154 records with both ALSFRS original and revised   
+- 20,841 records in 6,507 patients (ALSFRS original) during the first 3 months    
+- min, max, mean, linear regression slope estimate 
 
-4. als hx   
-- no duplicates   
-- excluding records with diag_delta > 0 or onset_delta > 0 (which means that enrollment precedes diagnosis or symptom onset)  
--> als_hx.csv 
+FVC   
+- duplicates excluded -> fvc.csv   
+- 44,516 records in 7,313 patients  
+- 0 to 2,120 days 
+- fvc_3mo, 19,660 records in 7218 patients   
+- mean, max, mean, linear regression slope estimates    
 
-5. family hx 
-- no duplicates   
--> family_hx.csv 
+SVC   
+- duplicates excluded -> svc.csv 
+- 4,826 records in 695 patients   
+- mean, max, mean, linear regression slope estimates    
+- svc_3mo, 2,056 records in 695 patients   
 
-6. riluzole 
-- no duplicates  
--> riluzole.csv
+ALS Hx   
+- excluding records with diag_delta > 0 or onset_delta > 0 (which means that enrollment precedes diagnosis or symptom onset) -> als_hx.csv 
+- 4,454 patients     
 
-7. treatment group
-- no duplicates
--> treatment_group.csv
+Family hx 
+- no duplicates  -> family_hx.csv 
+- 1,007 patients (Yes in 131 patients)
 
-8. vitals 
-- exclude duplicates 
--> bmi.csv, weight.csv, vitals.csv 
+Riluzole 
+- no duplicates -> riluzole.csv
+- 8,817 patients (Yes in 6,823 patients)   
 
-9. lab  
-- duplicates excluded   
-- excluded records without feature_delta  
--> lab.csv 
+Treatment group
+- no duplicates -> treatment_group.csv   
+- 9,640 patients (Active in 6728 patients)  
+
+Vitals 
+- exclude duplicates -> bmi.csv, weight.csv, vitals.csv 
+- BMI 6337 records in 4550 patients (BMI_3mo_mean, 4549 patients)    
+- Wt 50,266 records in 7587 patients over 0 to 2114 days (Wt_3mo_mean, 4549 patients)   
+- Vital signs, 61,237 records in 7,043 patients (vitalsign_3mo_mean, 7024 patients)   
+
+Lab  
+- excluded duplicates and the records without feature_delta -> lab.csv 
+- 66,256 records in 7,775 patients (3mo_mean, 7709 patients)  
+
 
 ## Imputation
+### Missing data: proportion and pattern  
+
 multiple imputation using mice package    
+
+
 
 
 ## Progression prediction (slope of ALSFRS total score)  
