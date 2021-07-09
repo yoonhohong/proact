@@ -26,16 +26,6 @@ dim(data.all) # 4,456,146 records
 levels(data.all$form_name)
 range(data.all$feature_delta, na.rm = T) # -468 days to 3,742 days
 
-# ALSFRS_slope datasets 
-slope_training = read.delim("ALSFRS_slope_PROACT_training.txt", sep = "|", header = T)
-slope_training2 = read.delim("ALSFRS_slope_PROACT_training2.txt", sep = "|", header = T)
-slope_validation = read.delim("ALSFRS_slope_PROACT_validation.txt", sep = "|", header = T)
-slope_leaderboard = read.delim("ALSFRS_slope_PROACT_leaderboard.txt", sep = "|", header = T)
-slope_all = rbind(slope_training, slope_training2, slope_leaderboard, slope_validation)
-length(unique(slope_all$SubjectID)) # 3096 patients 
-slope_all$SubjectID <- as.character(slope_all$SubjectID)
-
-write.csv(slope_all, "ALSFRS_slope.csv", row.names = F, quote = F)
 
 # Demographic
 data.all %>% filter(form_name == "Demographic") %>% 
@@ -70,81 +60,129 @@ alsfrs <- data.all %>%
 alsfrs = alsfrs %>%
   select(-c(form_name,feature_unit))
 alsfrs$feature_value <- as.numeric(alsfrs$feature_value)
-# Exclude alsfrs records with feature_delta < 0 
+# exclude alsfrs records with feature_delta < 0 
 range(alsfrs$feature_delta)
 alsfrs = alsfrs %>%
   filter(feature_delta >= 0) 
-# excluded records with feature_delta < 0 
-# 507 records in 27 patients 
 
-# Exclude duplicates
+# exclude duplicates
 dim(alsfrs)
-temp = alsfrs
-temp = unique(temp) 
-# exclude records that are completely the same
+temp = distinct(alsfrs)
 dim(temp)
-# Exclude ALSFRS records with the same feature_delta 
-# but having different feature_value
-temp$id_delta = paste(temp$SubjectID, 
-                      temp$feature_delta, sep = "_")
+# exclude ALSFRS records with the same feature_delta 
+# but having different feature_value (partial duplicates)
+# finding partial duplicates
+dup = temp %>%
+  count(SubjectID, feature_name, feature_delta) %>%
+  filter(n > 1) 
+# create unique ids for partial duplicates
+dup_ids = dup %>%
+  mutate(ids = paste(SubjectID, 
+                     feature_name, 
+                     feature_delta, sep = "_"))
+# create unique ids for original data
 temp2 = temp %>%
-  select(-feature_value)
-temp3 = temp2[duplicated(temp2),]
-duplicated_id_delta = unique(temp3$id_delta)
-temp4 = temp %>%
-  filter(!(id_delta %in% duplicated_id_delta)) %>%
-  select(-id_delta)
-temp4$feature_name = factor(temp4$feature_name)
+  mutate(ids = paste(SubjectID, 
+                     feature_name, 
+                     feature_delta, sep = "_"))
+# filter    
+temp3 = temp2 %>%
+  filter(!(ids %in% dup_ids$ids)) %>%
+  select(-ids)
+# validate 
+temp3 %>%
+  count(SubjectID, feature_name, feature_delta) %>%
+  filter(n > 1) 
 
-alsfrs_wide <- spread(temp4,feature_name,feature_value)
-dim(alsfrs_wide) #59,269 records 
+# temp$id_delta = paste(temp$SubjectID, 
+#                       temp$feature_delta, sep = "_")
+# temp2 = temp %>%
+#   select(-feature_value)
+# temp3 = temp2[duplicated(temp2),]
+# duplicated_id_delta = unique(temp3$id_delta)
+# temp4 = temp %>%
+#   filter(!(id_delta %in% duplicated_id_delta)) %>%
+#   select(-id_delta)
+temp3$feature_name = factor(temp3$feature_name)
+alsfrs_wide <- spread(temp3,feature_name,feature_value)
 
+# Exclude records with both Q5a and Q5b item scores
+temp = alsfrs_wide
+w_gastro = temp %>%
+  filter(!is.na(Q5b_Cutting_with_Gastrostomy)) 
+wo_gastro = temp %>%
+  filter(!is.na(Q5a_Cutting_without_Gastrostomy)) 
+temp2 = intersect(w_gastro, wo_gastro)
+dim(temp2) # 797 records 
+
+temp3 = setdiff(temp, temp2)
+w_gastro = temp3 %>%
+  filter(!is.na(Q5b_Cutting_with_Gastrostomy)) 
+wo_gastro = temp3 %>%
+  filter(!is.na(Q5a_Cutting_without_Gastrostomy)) 
+# validate
+intersect(w_gastro, wo_gastro)
+
+temp3 %>%
+  filter(is.na(Q5a_Cutting_without_Gastrostomy)) %>%
+  filter(!(Q5_Cutting == Q5b_Cutting_with_Gastrostomy))
+
+temp3 %>%
+  filter(is.na(Q5b_Cutting_with_Gastrostomy)) %>%
+  filter(!(Q5_Cutting == Q5a_Cutting_without_Gastrostomy))
+
+temp4 = temp3 %>%
+  mutate(Gastrostomy = ifelse(is.na(Q5b_Cutting_with_Gastrostomy), F, T)) %>%
+  select(-c(Q5a_Cutting_without_Gastrostomy, Q5b_Cutting_with_Gastrostomy))
+
+alsfrs_wide = temp4
+dim(alsfrs_wide) # 58487 records 
 
 # ALSFRS original vs. revised records 
-orig = alsfrs_wide[!is.na(alsfrs_wide$ALSFRS_Total),]$SubjectID
-orig_id = unique(orig)
-rev = alsfrs_wide[!is.na(alsfrs_wide$ALSFRS_R_Total),]$SubjectID
-rev_id = unique(rev)
-length(intersect(orig_id, rev_id)) # 3,412 patients 
-temp = alsfrs_wide %>%
-  filter(!is.na(ALSFRS_Total)) %>%
-  filter(!is.na(ALSFRS_R_Total))
-dim(temp) 
-# 30,154 records with both ALSFRS original and revised total scores 
+library(visdat)
+vis_miss(alsfrs_wide, warn_large_data = F)
+
+# orig = alsfrs_wide %>%
+#   filter(!is.na(ALSFRS_Total)) 
+# dim(orig) # 58470 records 
+# rev = alsfrs_wide %>%
+#   filter(!is.na(ALSFRS_R_Total))
+# dim(rev) # 29395 records 
+# both = intersect(orig, rev)
+# dim(both) # 29393 records 
 
 # ALSFRS original 
-alsfrs_original_wide = alsfrs_wide %>%
-  filter(!is.na(ALSFRS_Total)) %>%
+temp = alsfrs_wide %>%
   select(-c(ALSFRS_R_Total, 
             R1_Dyspnea, R2_Orthopnea, 
             R3_Respiratory_Insufficiency, 
             respiratory_R))
-dim(alsfrs_original_wide) # 59,260 records 
-length(unique(alsfrs_original_wide$SubjectID)) # 6,510 patients 
+vis_miss(temp, warn_large_data = F)
+
+# NA in Q10_Respiratory
+# probably error in filling in the item score 
+# replaced the item score with the respiratory dimension score  
+temp$Q10_Respiratory = ifelse(is.na(temp$Q10_Respiratory), 
+                                    temp$respiratory, 
+                                    temp$Q10_Respiratory) 
+
+alsfrs_original_wide = temp[complete.cases(temp),] 
+summary(alsfrs_original_wide)
+
+dim(alsfrs_original_wide) # 58412 records 
+length(unique(alsfrs_original_wide$SubjectID)) # 6,377 patients 
 table(table(alsfrs_original_wide$SubjectID))
 range(alsfrs_original_wide$feature_delta)
 
-temp = alsfrs_original_wide
-summary(temp) # NA in Q10_Respiratory: 23063 records 
-# probably error in filling in the respiratory dimension score...
-# used respiratory dimension score for Q10_Respiratory item score in ALSFRS original version scoring 
-temp$Q10_Respiratory = ifelse(is.na(temp$Q10_Respiratory), 
-                              temp$respiratory, 
-                              temp$Q10_Respiratory) 
-alsfrs_original_wide = temp
-alsfrs_original_wide = 
-  alsfrs_original_wide[,c(1,2,3,7,9:18,8,6,4,5,20,19)]
-
 # ALSFRS revised 
-alsfrs_revised_wide = alsfrs_wide %>%
-  filter(!is.na(ALSFRS_R_Total)) %>%
+temp = alsfrs_wide %>%
   select(-c(ALSFRS_Total, 
             Q10_Respiratory, respiratory))
-dim(alsfrs_revised_wide) # 30,167 records 
-length(unique(alsfrs_revised_wide$SubjectID)) # 3,412 patients 
+alsfrs_revised_wide = temp[complete.cases(temp),] 
+dim(alsfrs_revised_wide) # 29,381 records 
+length(unique(alsfrs_revised_wide$SubjectID)) # 3,275 patients 
 table(table(alsfrs_revised_wide$SubjectID))
-alsfrs_revised_wide = 
-  alsfrs_revised_wide[,c(1,2,3,7:20,6,4,5,22,21)]
+range(alsfrs_revised_wide$feature_delta)
 
 write.csv(alsfrs_original_wide, "ALSFRS_original.csv",
           row.names = F, quote = F)
@@ -152,38 +190,29 @@ write.csv(alsfrs_revised_wide, "ALSFRS_revised.csv",
           row.names = F, quote = F)
 
 # ALSFRS original vs. revised 
+
+# ALSFRS original 
 # Select records for the first 3 months
 # Meta-features: mean, min, max and linear regression slope 
-
 alsfrs_3mo = alsfrs_original_wide %>%
   filter(((feature_delta)/365)*12 <= 3)
 range(alsfrs_3mo$feature_delta)
-length(unique(alsfrs_3mo$SubjectID)) # 6507 patients 
-table(table(alsfrs_3mo$SubjectID)) # 340 patients have only one record
-dim(alsfrs_3mo) # 20,841 records 
+length(unique(alsfrs_3mo$SubjectID)) # 6374 patients 
+table(table(alsfrs_3mo$SubjectID)) 
+dim(alsfrs_3mo) # 20,610 records  
 
 # create meta feature; gastrostomy
-alsfrs_3mo <- alsfrs_3mo %>%
-  mutate(Gastrostomy = ifelse(is.na(Q5b_Cutting_with_Gastrostomy), F, T)) %>%
-  mutate(Gastrostomy = ifelse(is.na(Q5a_Cutting_without_Gastrostomy) & 
-                       is.na(Q5b_Cutting_with_Gastrostomy), NA, Gastrostomy))
-
-alsfrs_3mo = alsfrs_3mo %>%
-  filter(!is.na(Gastrostomy)) 
-# excluded 10 records with missing data in Q5_Cutting
-
-gastrostomy = alsfrs_3mo %>%
-  select(SubjectID, Gastrostomy)
-dim(gastrostomy)
 # some patients underwent gastrostomy during the first 3 mo
-gastrostomy = unique(gastrostomy)
-dim(gastrostomy) # 6667 records 
-length(unique(gastrostomy$SubjectID))
-# gastrostomy == T if patients underwent gastrostomy during the first 3 mo 
-temp = gastrostomy %>% 
+alsfrs_3mo %>%
   group_by(SubjectID) %>%
-  summarise(Gastrostomy = ifelse(any(Gastrostomy == T), T, F)) 
-gastrostomy = temp
+  summarize(n = sum(Gastrostomy)) %>%
+  filter(n >= 1) -> temp
+dim(temp) # 958 patients 
+# Gastrostomy == T if patients underwent gastrostomy during the first 3 mo 
+gastro = alsfrs_3mo %>% 
+  group_by(SubjectID) %>%
+  summarise(Gastrostomy = ifelse(any(Gastrostomy == T), 
+                                 T, F)) 
 
 alsfrs_3mo_aggr = alsfrs_3mo %>%
   group_by(SubjectID) %>%
@@ -241,77 +270,167 @@ alsfrs_3mo_aggr = alsfrs_3mo %>%
             respiratory_min = min(respiratory))
 
 dim(alsfrs_3mo_aggr)
-alsfrs_3mo_meta = merge(alsfrs_3mo_aggr, gastrostomy, by = "SubjectID")
+alsfrs_3mo_meta = merge(alsfrs_3mo_aggr, gastro, by = "SubjectID")
 summary(alsfrs_3mo_meta)
 
 # estimate alsfrs slope with linear regression, 
-# in those subjects with two or more datapoints during the first 3 months 
 temp = alsfrs_3mo_meta
-subject.one.datapoint = temp[temp$n==1,]$SubjectID
-temp2 = alsfrs_3mo[!(alsfrs_3mo$SubjectID %in% 
-                             subject.one.datapoint),]
+range(temp$interval)
+
+library(ggplot2)
+temp %>%
+  ggplot(aes(interval)) +
+  geom_histogram()
+# select subjects with interval >= 56 days (8 wks)
+temp2 = alsfrs_3mo_meta %>%
+  filter(interval >= 56)
+length(unique(temp2$SubjectID)) # 4672 patients 
+temp3 = alsfrs_3mo %>%
+  filter(SubjectID %in% temp2$SubjectID) %>%
+  mutate(feature_delta_mo = feature_delta/28)
 # Apply linear regression by SubjectID
-lm = with(temp2, by(temp2, SubjectID, 
-                       function(x) lm(ALSFRS_Total ~ feature_delta, 
+lm = with(temp3, by(temp3, SubjectID, 
+                       function(x) lm(ALSFRS_Total ~ feature_delta_mo, 
                                       data=x)))
 alsfrs_slope = sapply(lm, coef)[2,]
 alsfrs_slope_tab = data.frame(alsfrs_slope)
 alsfrs_slope_tab$SubjectID = rownames(alsfrs_slope_tab)
-plot(density(alsfrs_slope_tab$alsfrs_slope))
+alsfrs_slope_tab %>%
+  ggplot(aes(alsfrs_slope)) + 
+  geom_histogram()
+quantile(alsfrs_slope_tab$alsfrs_slope)
 
-# Merge fvc.meta and slope.tab
+# Merge alsfrs_3mo_meta and alsfrs_slope_tab
 alsfrs_3mo_meta_slope = merge(alsfrs_slope_tab, 
                                alsfrs_3mo_meta, 
                                by="SubjectID", all.y = T) 
-alsfrs_3mo_meta_slope = alsfrs_3mo_meta_slope %>%
-  select(-c(n, first, last, interval))
-
 summary(alsfrs_3mo_meta_slope)
 
 write.csv(alsfrs_3mo_meta_slope, "alsfrs_orig_3mo_meta_slope.csv", 
           quote=F, row.names = F)
 
-df = merge(demographic, alsfrs_3mo_meta_slope, by = "SubjectID", all.x = T)
+# ALSFRS revised 
+# Select records for the first 3 months
+# Meta-features: mean, min, max and linear regression slope 
+alsfrs_3mo = alsfrs_revised_wide %>%
+  filter(((feature_delta)/365)*12 <= 3)
+range(alsfrs_3mo$feature_delta)
+length(unique(alsfrs_3mo$SubjectID)) # 3273 patients 
+table(table(alsfrs_3mo$SubjectID)) 
+dim(alsfrs_3mo) # 9253 records  
 
-# # ALSFRS_R_Total meta-features and slope during the first 3 mo 
-# alsfrs_r_total_3mo = alsfrs_revised_wide %>%
-#   filter(feature_delta >=0 & feature_delta < 92) %>%
-#   select(SubjectID, ALSFRS_R_Total, feature_delta)
-# 
-# alsfrs_r_total_3mo_meta = alsfrs_r_total_3mo %>%
-#   group_by(SubjectID) %>% 
-#   summarise(mean_alsfrs_r_total = mean(ALSFRS_R_Total), 
-#             min_alsfrs_r_total = min(ALSFRS_R_Total), 
-#             max_alsfrs_r_total = max(ALSFRS_R_Total), 
-#             n=n(),
-#             first = first(feature_delta), 
-#             last = last(feature_delta), 
-#             interval = last(feature_delta) - first(feature_delta))
-# dim(alsfrs_r_total_3mo_meta)
-# 
-# # estimate alsfrs slope with linear regression, 
-# # excluding subjects with only one datapoint 
-# temp = alsfrs_r_total_3mo_meta
-# subject.one.datapoint = temp[temp$n==1,]$SubjectID
-# temp2 = alsfrs_r_total_3mo[!(alsfrs_r_total_3mo$SubjectID %in% 
-#                              subject.one.datapoint),]
-# 
-# # Apply linear regression by SubjectID
-# ###
-# lm = with(temp2, by(temp2, SubjectID, 
-#                     function(x) lm(ALSFRS_R_Total ~ feature_delta, 
-#                                    data=x)))
-# 
-# alsfrs_r_total_slope = sapply(lm, coef)[2,]
-# alsfrs_r_total_slope_tab = as.data.frame(alsfrs_r_total_slope)
-# alsfrs_r_total_slope_tab$SubjectID = rownames(alsfrs_r_total_slope_tab)
-# # Merge fvc.meta and slope.tab
-# alsfrs_r_total_3mo_meta_slope = merge(alsfrs_r_total_slope_tab, 
-#                                     alsfrs_r_total_3mo_meta, 
-#                                     by="SubjectID", all.y = T)
-# write.csv(alsfrs_r_total_3mo_meta_slope, "alsfrs_r_total_3mo_meta_slope.csv", 
-#           quote=F, row.names = F)
+# create meta feature; gastrostomy
+# some patients underwent gastrostomy during the first 3 mo
+alsfrs_3mo %>%
+  group_by(SubjectID) %>%
+  summarize(n = sum(Gastrostomy)) %>%
+  filter(n >= 1) -> temp
+dim(temp) # 823 patients 
+# Gastrostomy == T if patients underwent gastrostomy during the first 3 mo 
+gastro = alsfrs_3mo %>% 
+  group_by(SubjectID) %>%
+  summarise(Gastrostomy = ifelse(any(Gastrostomy == T), T, F)) 
 
+alsfrs_3mo_aggr = alsfrs_3mo %>%
+  group_by(SubjectID) %>%
+  summarise(n=n(),
+            first = first(feature_delta), 
+            last = last(feature_delta), 
+            interval = last(feature_delta) - first(feature_delta),
+            ALSFRS_R_Total_mean = mean(ALSFRS_R_Total), 
+            Q1_Speech_mean = mean(Q1_Speech), 
+            Q2_Salivation_mean = mean(Q2_Salivation), 
+            Q3_Swallowing_mean = mean(Q3_Swallowing), 
+            Q4_Handwriting_mean = mean(Q4_Handwriting), 
+            Q5_Cutting_mean = mean(Q5_Cutting), 
+            Q6_Dressing_and_Hygiene_mean = mean(Q6_Dressing_and_Hygiene),
+            Q7_Turning_in_Bed_mean = mean(Q7_Turning_in_Bed),
+            Q8_Walking_mean = mean(Q8_Walking),
+            Q9_Climbing_Stairs_mean = mean(Q9_Climbing_Stairs),
+            R1_Dyspnea_mean = mean(R1_Dyspnea), 
+            R2_Orthopnea_mean = mean(R2_Orthopnea),
+            R3_Respiratory_Insufficiency_mean = mean(R3_Respiratory_Insufficiency),
+            mouth_mean = mean(mouth),
+            hands_mean = mean(hands),
+            leg_mean = mean(leg),
+            trunk_mean = mean(trunk),
+            respiratory_R_mean = mean(respiratory_R),
+            ALSFRS_R_Total_max = max(ALSFRS_R_Total), 
+            Q1_Speech_max = max(Q1_Speech), 
+            Q2_Salivation_max = max(Q2_Salivation), 
+            Q3_Swallowing_max = max(Q3_Swallowing), 
+            Q4_Handwriting_max = max(Q4_Handwriting), 
+            Q5_Cutting_max = max(Q5_Cutting), 
+            Q6_Dressing_and_Hygiene_max = max(Q6_Dressing_and_Hygiene),
+            Q7_Turning_in_Bed_max = max(Q7_Turning_in_Bed),
+            Q8_Walking_max = max(Q8_Walking),
+            Q9_Climbing_Stairs_max = max(Q9_Climbing_Stairs),
+            R1_Dyspnea_max = max(R1_Dyspnea), 
+            R2_Orthopnea_max = max(R2_Orthopnea),
+            R3_Respiratory_Insufficiency_max = max(R3_Respiratory_Insufficiency),
+            mouth_max = max(mouth),
+            hands_max = max(hands),
+            leg_max = max(leg),
+            trunk_max = max(trunk),
+            respiratory_R_max = max(respiratory_R),
+            ALSFRS_R_Total_min = min(ALSFRS_R_Total), 
+            Q1_Speech_min = min(Q1_Speech), 
+            Q2_Salivation_min = min(Q2_Salivation), 
+            Q3_Swallowing_min = min(Q3_Swallowing), 
+            Q4_Handwriting_min = min(Q4_Handwriting), 
+            Q5_Cutting_min = min(Q5_Cutting), 
+            Q6_Dressing_and_Hygiene_min = min(Q6_Dressing_and_Hygiene),
+            Q7_Turning_in_Bed_min = min(Q7_Turning_in_Bed),
+            Q8_Walking_min = min(Q8_Walking),
+            Q9_Climbing_Stairs_min = min(Q9_Climbing_Stairs),
+            R1_Dyspnea_min = min(R1_Dyspnea), 
+            R2_Orthopnea_min = min(R2_Orthopnea),
+            R3_Respiratory_Insufficiency_min = min(R3_Respiratory_Insufficiency),
+            mouth_min = min(mouth),
+            hands_min = min(hands),
+            leg_min = min(leg),
+            trunk_min = min(trunk),
+            respiratory_R_min = min(respiratory_R))
+
+dim(alsfrs_3mo_aggr)
+alsfrs_3mo_meta = merge(alsfrs_3mo_aggr, gastro, by = "SubjectID")
+summary(alsfrs_3mo_meta)
+
+# estimate alsfrs slope with linear regression, 
+temp = alsfrs_3mo_meta
+range(temp$interval)
+
+temp %>%
+  ggplot(aes(interval)) +
+  geom_histogram()
+# select subjects with interval >= 56 days (8 wks)
+temp2 = alsfrs_3mo_meta %>%
+  filter(interval >= 56)
+length(unique(temp2$SubjectID)) # 2004 patients 
+temp3 = alsfrs_3mo %>%
+  filter(SubjectID %in% temp2$SubjectID) %>%
+  mutate(feature_delta_mo = feature_delta/28)
+# Apply linear regression by SubjectID
+lm = with(temp3, by(temp3, SubjectID, 
+                    function(x) lm(ALSFRS_R_Total ~ feature_delta_mo, 
+                                   data=x)))
+alsfrs_slope = sapply(lm, coef)[2,]
+alsfrs_slope_tab = data.frame(alsfrs_slope)
+alsfrs_slope_tab$SubjectID = rownames(alsfrs_slope_tab)
+alsfrs_slope_tab %>%
+  ggplot(aes(alsfrs_slope)) + 
+  geom_histogram()
+quantile(alsfrs_slope_tab$alsfrs_slope)
+
+# Merge alsfrs_3mo_meta and alsfrs_slope_tab
+alsfrs_3mo_meta_slope = merge(alsfrs_slope_tab, 
+                              alsfrs_3mo_meta, 
+                              by="SubjectID", all.y = T) 
+alsfrs_r_3mo_meta_slope = alsfrs_3mo_meta_slope
+summary(alsfrs_r_3mo_meta_slope)
+
+write.csv(alsfrs_r_3mo_meta_slope, "alsfrs_revised_3mo_meta_slope.csv", 
+          quote=F, row.names = F)
 
 # FVC & SVC  
 # FVC
@@ -319,24 +438,33 @@ fvc = data.all %>%
   filter(form_name == "FVC") %>% 
   filter(feature_name == "fvc_percent") %>%
   select(SubjectID, feature_name, feature_value, feature_delta)
+# exclude feature_delta < 0 
 range(fvc$feature_delta)
 fvc$feature_value = round(as.numeric(fvc$feature_value))
 fvc = fvc %>%
   filter(feature_delta >= 0)
-# exclude duplicate records 
-fvc = unique(fvc)
-fvc$id_delta = paste(fvc$SubjectID, fvc$feature_delta, 
-                     sep = "_")
-temp = fvc %>%
-  select(-feature_value)
-duplicated_id_delta = unique(temp[duplicated(temp),]$id_delta) 
-length(duplicated_id_delta) # 41 records 
-fvc = fvc %>%
-  filter(!(id_delta %in% duplicated_id_delta)) %>%
-  select(-c(id_delta, feature_name))
-names(fvc)[2] = "fvc_percent"
-fvc = fvc %>%
-  filter(!is.na(fvc_percent))
+# exclude duplicates (full)
+fvc = distinct(fvc)
+# exclude partial duplicates  
+dup_ids = fvc %>%
+  count(SubjectID, feature_name, feature_delta) %>%
+  filter(n>1) %>%
+  mutate(ids = paste(SubjectID, feature_name, feature_delta, sep = "_"))
+
+fvc_ids = fvc %>%
+  mutate(ids = paste(SubjectID, feature_name, feature_delta, sep = "_"))
+
+temp = fvc_ids %>%
+  filter(!(ids %in% dup_ids$ids)) %>%
+  select(-ids)
+# validate
+temp %>%
+  count(SubjectID, feature_name, feature_delta) %>%
+  filter(n > 1) 
+fvc = temp
+# exclude missing values 
+summary(fvc)
+fvc = fvc[complete.cases(fvc),]
 dim(fvc) # 44516 records 
 length(unique(fvc$SubjectID)) # 7313 patients 
 range(fvc$feature_delta)
@@ -347,43 +475,60 @@ write.csv(fvc, "fvc.csv", row.names = F, quote = F)
 # Extract data with feature_delta < 92
 fvc_3mo = fvc %>% 
   filter((feature_delta/365)*12 <= 3)
-length(unique(fvc_3mo$SubjectID)) # 7767 patients 
-dim(fvc_3mo)
+length(unique(fvc_3mo$SubjectID)) # 7218 patients 
+dim(fvc_3mo) # 19660 records 
 
 # Calculate fvc_mean, _min, _max 
 fvc_3mo_meta = fvc_3mo %>%
   group_by(SubjectID) %>% 
-  summarise(fvc_mean = mean(fvc_percent), 
-            fvc_min = min(fvc_percent), 
-            fvc_max = max(fvc_percent), 
+  arrange(feature_delta) %>%
+  summarise(fvc_mean = mean(feature_value), 
+            fvc_min = min(feature_value), 
+            fvc_max = max(feature_value), 
             n=n(),
             first = first(feature_delta), 
             last = last(feature_delta), 
             interval = last(feature_delta) - first(feature_delta))
 dim(fvc_3mo_meta)
 
-# Calculate fvc_slope with linear regression, 
-# excluding subjects with only one fvc datapoint 
-subject.one.datapoint = fvc_3mo_meta[fvc_3mo_meta$n==1,]$SubjectID
-length(subject.one.datapoint) # 1962 patients 
-fvc_3mo_sub = fvc_3mo[!(fvc_3mo$SubjectID %in% subject.one.datapoint),]
+# calculate fvc_slope with linear regression, 
+# only cases with interval >= 8 wks   
 
+temp = fvc_3mo_meta
+range(temp$interval)
+
+temp %>%
+  ggplot(aes(interval)) +
+  geom_histogram()
+# select subjects with interval >= 56 days (8 wks)
+
+temp2 = fvc_3mo_meta %>%
+  filter(interval >= 56)
+length(unique(temp2$SubjectID)) # 4105 patients 
+temp3 = fvc_3mo %>%
+  filter(SubjectID %in% temp2$SubjectID) %>%
+  mutate(feature_delta_mo = feature_delta/28)
 # Apply linear regression by SubjectID
-lm = with(fvc_3mo_sub, by(fvc_3mo_sub, SubjectID, 
-                          function(x) lm(fvc_percent ~ feature_delta, data=x)))
+lm = with(temp3, by(temp3, SubjectID, 
+                    function(x) lm(feature_value ~ feature_delta_mo, 
+                                   data=x)))
 fvc_slope = sapply(lm, coef)[2,]
-slope.tab = data.frame(fvc_slope)
-slope.tab$SubjectID = rownames(slope.tab)
-plot(density(slope.tab$fvc_slope))
+fvc_slope_tab = data.frame(fvc_slope)
+fvc_slope_tab$SubjectID = rownames(fvc_slope_tab)
+fvc_slope_tab %>%
+  ggplot(aes(fvc_slope)) + 
+  geom_histogram()
+quantile(fvc_slope_tab$fvc_slope)
 
-# Merge fvc.meta and slope.tab
-fvc.tab = merge(slope.tab, fvc_3mo_meta, by="SubjectID", all.y = T)
-fvc.tab = fvc.tab %>%
-  select(-c(n, first, last, interval))
+# Merge fvc_3mo_meta and fvc_slope_tab
+fvc_3mo_meta_slope = merge(fvc_slope_tab, 
+                              fvc_3mo_meta, 
+                              by="SubjectID", all.y = T) 
+fvc_3mo_meta_slope = fvc_3mo_meta_slope
+summary(fvc_3mo_meta_slope)
 
-write.csv(fvc.tab, "fvc_3mo_meta.csv", quote=F, row.names = F)
-
-df2 = merge(df, fvc.tab, by="SubjectID", all.x = T)
+write.csv(fvc_3mo_meta_slope, "fvc_3mo_meta_slope.csv", 
+          quote=F, row.names = F)
 
 # SVC 
 svc = data.all %>% 
@@ -391,20 +536,15 @@ svc = data.all %>%
   filter(feature_name == "svc_percent") %>%
   select(SubjectID, feature_name, feature_value, feature_delta)
 svc$feature_value = round(as.numeric(svc$feature_value))
-# exclude dupldates 
-svc = unique(svc)
-svc$id_delta = paste(svc$SubjectID, svc$feature_delta, sep = "_")
-temp = svc %>%
-  select(-feature_value)
-duplicated_id_delta = temp[duplicated(temp),]$id_delta
-temp2 = svc %>%
-  filter(!(id_delta %in% duplicated_id_delta)) %>%
-  select(-c(id_delta, feature_name))
-names(temp2)[2] = "svc_percent"
-svc = temp2 
-# excluded records 
-
+# exclude full dupldates 
+svc = distinct(svc)
+dim(svc)
 range(svc$feature_delta)
+# exclude partial duplicates 
+svc %>%
+  count(SubjectID, feature_name, feature_delta) %>%
+  filter(n > 1) 
+
 length(unique(svc$SubjectID)) # 695 patients 
 dim(svc) # 4826 records 
 table(table(svc$SubjectID))
@@ -412,7 +552,7 @@ table(table(svc$SubjectID))
 write.csv(svc, "svc.csv", row.names = F, quote = F)
 
 # SVC_3mo 
-# Extract data with feature_delta < 92
+# Extract data with feature_delta <= 3 mo
 svc_3mo = svc %>% 
   filter((feature_delta/365)*12 <= 3)
 length(unique(svc_3mo$SubjectID)) # 695 patients
@@ -421,9 +561,10 @@ dim(svc_3mo) # 2056 records
 # Calculate svc_mean, _min, _max 
 svc_3mo_meta = svc_3mo %>%
   group_by(SubjectID) %>% 
-  summarise(svc_mean = mean(svc_percent), 
-            svc_min = min(svc_percent), 
-            svc_max = max(svc_percent), 
+  arrange(feature_delta) %>%
+  summarise(svc_mean = mean(feature_value), 
+            svc_min = min(feature_value), 
+            svc_max = max(feature_value), 
             n=n(), 
             first = first(feature_delta), 
             last = last(feature_delta), 
@@ -431,24 +572,29 @@ svc_3mo_meta = svc_3mo %>%
 dim(svc_3mo_meta) 
 
 # Calculate svc_slope with linear regression, 
-# excluding subjects with only one svc datapoint 
-subject.one.datapoint = svc_3mo_meta[svc_3mo_meta$n==1,]$SubjectID
-svc_3mo_sub = svc_3mo[!(svc_3mo$SubjectID %in% subject.one.datapoint),]
+# only in cases with interval >= 8 wks 
+range(svc_3mo_meta$interval)
 
+svc_3mo_meta %>%
+  ggplot(aes(interval)) + 
+  geom_histogram()
+temp = svc_3mo_meta %>%
+  filter(interval >= 56)
+svc_3mo_sub = svc_3mo %>%
+  filter(SubjectID %in% temp$SubjectID) %>%
+  mutate(feature_delta_mo = feature_delta/28)
+  
 # Apply linear regression by SubjectID
 lm = with(svc_3mo_sub, by(svc_3mo_sub, SubjectID, 
-                          function(x) lm(svc_percent ~ feature_delta, data=x)))
+                          function(x) lm(feature_value ~ 
+                                           feature_delta_mo, data=x)))
 svc_slope = sapply(lm, coef)[2,]
 slope.tab = as.data.frame(svc_slope)
 slope.tab$SubjectID = rownames(slope.tab)
 # Merge svc.meta and slope.tab
 svc.tab = merge(slope.tab, svc_3mo_meta, by="SubjectID", all.y = T)
-svc.tab = svc.tab %>%
-  select(-c(n, first, last, interval))
+write.csv(svc.tab, "svc_3mo_meta_slope.csv", quote=F, row.names = F)
 
-write.csv(svc.tab, "svc_3mo_meta.csv", quote=F, row.names = F)
-
-df3 = merge(df2, svc.tab, by = "SubjectID", all.x = T)
 
 # ALSHX 
 # Filter form_name == "ALSHX"
@@ -464,11 +610,12 @@ temp = alshx %>%
   filter(diag_delta <= 0) %>%
   filter(onset_delta <= 0)
 alshx = temp
-dim(alshx) # 4454 patients 
 summary(alshx)
-write.csv(alshx, "als_hx.csv", quote=F, row.names=F)
+# exclude case with missing value in onset_site
+alshx = alshx[complete.cases(alshx),] 
 
-df4 = merge(df3, alshx, by="SubjectID", all.x = T)
+dim(alshx) # 4453 patients 
+write.csv(alshx, "als_hx.csv", quote=F, row.names=F)
 
 # FamilyHx -> famhx
 data.all %>% filter(form_name == "FamilyHx") %>% 
@@ -478,9 +625,9 @@ temp$feature_value = factor(temp$feature_value)
 
 famhx = spread(temp, feature_name, feature_value)
 dim(famhx) # 1007 patients
+famhx[duplicated(famhx),] # no duplicates  
 write.csv(famhx, "family_hx.csv", quote=F, row.names=F)
 
-df5 = merge(df4, famhx, by="SubjectID", all.x = T)
 
 # Riluzole
 data.all %>% filter(form_name == "Riluzole") %>% 
@@ -489,9 +636,9 @@ temp$feature_name = factor(temp$feature_name)
 temp$feature_value = factor(temp$feature_value)
 riluzole = spread(temp, feature_name, feature_value)
 dim(riluzole) # 8817 patients
+riluzole[duplicated(riluzole),]
 write.csv(riluzole, "riluzole.csv", quote=F, row.names=F)
 
-df6 = merge(df5, riluzole, by = "SubjectID", all.x = T)
 
 # Treatment group: active vs. placebo 
 data.all %>% filter(form_name == "Treatment") %>%
@@ -499,9 +646,9 @@ data.all %>% filter(form_name == "Treatment") %>%
 tx = spread(temp, feature_name, feature_value)
 tx$treatment_group = factor(tx$treatment_group)
 dim(tx) # 9640 patients 
+tx[duplicated(tx),]
 write.csv(tx, "treatment_group.csv", quote = F, row.names = F)
 
-df7 = merge(df6, tx, by = "SubjectID", all.x = T)
 
 # Vitals 
 
@@ -515,18 +662,30 @@ vitals = vitals %>%
   filter(feature_delta >= 0)
 # exclude duplicates 
 temp = unique(vitals) 
-temp$id_delta = paste(temp$SubjectID, temp$feature_delta, 
-                      sep = "_")
-temp$id_feature_delta = paste(temp$id_delta, temp$feature_name, 
-                              sep = "_")
+
+dup = temp %>%
+  count(SubjectID, feature_name, feature_delta) %>%
+  filter(n > 1)
+
+dup_ids = dup %>%
+  mutate(ids = paste(SubjectID,
+                     feature_name, 
+                     feature_delta, 
+                     sep = "_"
+                     ))
 temp2 = temp %>%
-  select(-feature_value)
-# exclude records with the same SubjectID, 
-# feature_name and feature_delta but different feature_value
-duplicated_id_feature_delta = temp2[duplicated(temp2),]$id_feature_delta
-temp3 = temp %>% 
-  filter(!(id_feature_delta %in% duplicated_id_feature_delta)) %>%
-  select(-c(id_delta, id_feature_delta))
+  mutate(ids = paste(SubjectID,
+                     feature_name, 
+                     feature_delta, 
+                     sep = "_"))
+temp3 = temp2 %>%
+  filter(!(temp2$ids %in% dup_ids$ids)) %>%
+  select(-ids)
+# validate 
+temp3 %>%
+  count(SubjectID, feature_name, feature_delta) %>%
+  filter(n > 1)
+
 vitals = temp3   
 # BMI 
 bmi = vitals %>%
@@ -542,13 +701,12 @@ range(bmi_wide$feature_delta)
 write.csv(bmi_wide, "bmi.csv", quote = F, row.names = F)
 
 # Calculate bmi_mean 
-bmi_3mo = bmi_wide %>%
-  filter((feature_delta/365)*12 <= 3) %>%
-  group_by(SubjectID) %>% 
-  summarise(BMI_3mo_mean = mean(BMI))
-dim(bmi_3mo) 
+# bmi_3mo = bmi_wide %>%
+#   filter((feature_delta/365)*12 <= 3) %>%
+#   group_by(SubjectID) %>% 
+#   summarise(BMI_3mo_mean = mean(BMI))
+# dim(bmi_3mo) 
 
-df8 = merge(df7, bmi_3mo, by = "SubjectID", all.x = T)
 
 # Weight 
 wt = vitals %>%
@@ -563,13 +721,12 @@ range(wt_wide$feature_delta)
 write.csv(wt_wide, "weight.csv", quote = F, row.names = F)
 
 # Calculate wt_mean 
-wt_3mo = wt_wide %>%
-  filter((feature_delta/365)*12 <= 3) %>%
-  group_by(SubjectID) %>% 
-  summarise(Wt_3mo_mean = mean(weight))
-dim(bmi_3mo) # 4549 patients 
+# wt_3mo = wt_wide %>%
+#   filter((feature_delta/365)*12 <= 3) %>%
+#   group_by(SubjectID) %>% 
+#   summarise(Wt_3mo_mean = mean(weight))
+# dim(bmi_3mo) # 4549 patients 
 
-df9 = merge(df8, wt_3mo, by = "SubjectID", all.x = T)
 
 # # Height
 # ht = vitals %>%
@@ -589,13 +746,13 @@ vitalsign = vitals %>%
 
 vitalsign_wide = spread(vitalsign, key = feature_name, value = feature_value)
 range(vitalsign_wide$feature_delta)
-dim(vitalsign_wide) # 61261 records 
-length(unique(vitalsign_wide$SubjectID)) # 7044 patients 
+dim(vitalsign_wide) # 61237 records 
+length(unique(vitalsign_wide$SubjectID)) # 7043 patients 
 
 write.csv(vitalsign_wide, "vitalsign.csv", quote=F, row.names = F)
 
 # Calculate mean 
-vitalsign_3mo = vitalsign_wide %>%
+vitalsign_3mo_meta = vitalsign_wide %>%
   filter((feature_delta/365)*12 <= 3) %>%
   group_by(SubjectID) %>% 
   summarise(bp_diastolic_3mo_mean = mean(bp_diastolic), 
@@ -603,9 +760,8 @@ vitalsign_3mo = vitalsign_wide %>%
             pulse_3mo_mean = mean(pulse), 
             respiratory_rate_3mo_mean = mean(respiratory_rate),
             temperature_3mo_mean = mean(temperature))
-dim(vitalsign_3mo) # 7024 patients
-
-df10 = merge(df9, vitalsign_3mo, by = "SubjectID", all.x = T)
+dim(vitalsign_3mo_meta) # 7024 patients
+write.csv(vitalsign_3mo_meta, "vitalsign_3mo_meta.csv", quote=F, row.names = F)
 
 # Lab 
 lab = data.all %>% filter(form_name == "Lab Test") %>%
@@ -615,6 +771,7 @@ levels(lab$feature_name)
 lab$feature_value = as.numeric(lab$feature_value)
 lab = lab %>%
   filter(feature_delta >= 0)
+lab = distinct(lab)
 # select some features
 lab_sub = lab %>% 
   filter(feature_name %in% 
@@ -635,29 +792,32 @@ lab_sub = lab %>%
              "Urine Creatinine",
              "Urine Creatinine Clearance"
            ))
-# exclude duplicates 
-lab = unique(lab)
-lab_sub -> temp
-temp$id_feature_delta = paste(
-  paste(temp$SubjectID, temp$feature_name, sep = "_"), 
-  temp$feature_delta, sep = "_)")
-temp2 = temp %>%
-  select(-feature_value)
-duplicated_id_feature_delta = temp2[duplicated(temp2),]$id_feature_delta
-temp3 = temp %>%
-  filter(!(id_feature_delta %in% duplicated_id_feature_delta))
-lab_sub = temp3 %>%
-  select(-id_feature_delta)
-
+# exclude partial duplicates 
+dup = lab_sub %>%
+  count(SubjectID, feature_name, feature_delta) %>%
+  filter(n > 1)
+dup_ids = dup %>%
+  mutate(ids = paste(SubjectID, feature_name, feature_delta, 
+                     sep = "_"))
+lab_ids = lab_sub %>%
+  mutate(ids = paste(SubjectID, feature_name, feature_delta, 
+                     sep = "_"))
+lab_sub = lab_ids %>%
+  filter(!(ids %in% dup_ids$ids)) %>%
+  select(-ids)
+# validate
+lab_sub %>%
+  count(SubjectID, feature_name, feature_delta) %>%
+  filter(n > 1)
 lab.tab = spread(lab_sub, feature_name, feature_value)
 range(lab.tab$feature_delta)
-length(unique(lab.tab$SubjectID)) # 7775 patients 
-dim(lab.tab) # 66256 records 
+length(unique(lab.tab$SubjectID)) # 7776 patients 
+dim(lab.tab) # 66638 records 
 
 write.csv(lab.tab, "lab.csv", quote=F, row.names = F)
 
 # Calculate mean 
-lab_3mo = lab.tab %>%
+lab_3mo_mean = lab.tab %>%
   filter((feature_delta/365)*12 <= 3) %>%
   group_by(SubjectID) %>% 
   summarise("Absolute Neutrophil Count" = mean(`Absolute Neutrophil Count`),
@@ -677,11 +837,9 @@ lab_3mo = lab.tab %>%
             "Urine Creatinine" = mean(`Urine Creatinine`),
             "Urine Creatinine Clearance" = mean(`Urine Creatinine Clearance`))
 
-dim(lab_3mo) # 7709 patients
-summary(lab_3mo)
+dim(lab_3mo_mean) # 7712 patients
+summary(lab_3mo_mean)
 
-df11 = merge(df10, lab_3mo, by = "SubjectID", all.x = T)
-
-write.csv(df11, "PROACT_preprocessed.csv", quote = F, row.names = F)
+write.csv(lab_3mo_mean, "lab_3mo_mean.csv", quote = F, row.names = F)
 
 # The End # 
