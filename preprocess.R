@@ -26,7 +26,6 @@ dim(data.all) # 4,456,146 records
 levels(data.all$form_name)
 range(data.all$feature_delta, na.rm = T) # -468 days to 3,742 days
 
-
 # Demographic
 data.all %>% filter(form_name == "Demographic") %>% 
   select(SubjectID, feature_name, feature_value) -> temp
