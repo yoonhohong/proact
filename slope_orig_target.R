@@ -12,8 +12,14 @@ slope_training2 = read.delim("ALSFRS_slope_PROACT_training2.txt", sep = "|", hea
 slope_validation = read.delim("ALSFRS_slope_PROACT_validation.txt", sep = "|", header = T)
 slope_leaderboard = read.delim("ALSFRS_slope_PROACT_leaderboard.txt", sep = "|", header = T)
 slope_all = rbind(slope_training, slope_training2, slope_leaderboard, slope_validation)
-length(unique(slope_all$SubjectID)) # 3096 patients 
-slope_all$SubjectID <- as.character(slope_all$SubjectID)
 
-write.csv(slope_all, "ALSFRS_slope.csv", row.names = F, quote = F)
+# check duplicates 
+slope_all[duplicated(slope_all),]
+
+# report the number of subjects 
+length(unique(slope_all$SubjectID)) # 3096 patients 
+
+write.csv(slope_all, "ALSFRS_slope_target.csv", row.names = F, quote = F)
+
+
 
