@@ -38,46 +38,45 @@ PRO-ACT database
 https://nctu.partners.org/proact   
 
 Accessed Sept. 2017 
-DB contains data of 10,723 patients (including all datasets for training, training2, leaderboard, validation)        
+DB contains data of 10,723 patients (including all datasets for training, training2, leaderboard, validation), and survival data of 9080 patients (including all datasets for training, training2, leaderboard, validation)  
+
 
 # Workflow 
 
 **preprocess.R**    
 data preprocessing and merging for either ALSFRS orig or rev    
 
-1. filtering   
+1. Filtering   
 
 - excluded duplicate records, inconsistent values, and 
 errorneous records (feature_delta < 0)   
-- excluded either none or incomplete ALSHX data 
+- excluded either none or incomplete ALShx data 
 (diag_delta, onset_delta, onset_site)  
-- excluded erroneous values (diag_delta > 0, onset_delta > 0, 
-diag_delta < onset_delta)  
-- excluded either none or incomplete ALSFRS orig scores data(or ALSFRS rev scores)   
+- excluded erroneous values (diag_delta > 0, onset_delta > 0, diag_delta < onset_delta)  
+- excluded either none or incomplete ALSFRS orig scores data (or ALSFRS rev scores)   
 - excluded errorneous records (both Q5a and Q5b filled-in)  
 
-2. create aggregated and meta-features  
+2. Creating aggregated and meta-features  
 
-- estimate slope for ALSFRS total scores, bulbar scores, motor scores, respiration scores, fvc and svc over the first 3 mo (interval should be > 1.5 mo, number of measures >= 2), using linear model       
-- calculate mean value for ALSFRS total (and item) scores, fvc, svc, bmi, vital sign, and lab   
-- calculate onset2dx   
+- estimated slope for ALSFRS_Total (or ALSFRS_R_Total) scores, bulbar scores, motor scores, respiration scores, fvc and svc over the first 3 mo, using linear model (time interval between the first and last measurements should be > 1.5 mo, & the number of measurements should >= 2)          
+- calculated mean value for ALSFRS_Total (or ALSFRS_R_Total) and item  scores, fvc, svc, bmi, vital sign, and lab   
+- calculated onset2dx (onset to diagnosis)   
 
-3. transform features   
+3. Transforming features   
 
-- convert the sign of onset_delta and diag_delta from minus to plus    
-- convert the unit of feature_delta, onset_delta and diag_delta  from days to months     
-- combine the categories of onset_site (Limb, Limb and Bulbar, and Others) into Nonbulbar    
-- create new feature "Gastrostomy" (True/False) and replace Q5a and Q5b items with Q5   
-- replace Q10_Respiratory item score with respiratory dimension score (d/t many NAs in Q10_Respiratory item)    
+- converted the sign of onset_delta and diag_delta from minus to plus    
+- converted the unit of feature_delta, onset_delta and diag_delta from days to months     
+- combined the categories of onset_site (Limb, Limb and Bulbar, and Others) into Nonbulbar    
+- created a new feature "Gastrostomy" (True/False) and unified Q5a and Q5b items into Q5   
+- replaced Q10_Respiratory item score with respiratory dimension score in case of ALSFRS orig scores (d/t errorneous NAs in Q10_Respiratory item)    
 
+**Preprocessed data files**   
 
-4. create merged files for static and meta-features data  
-
+Merged data (predicting variables)    
 - *PROACT_preprocessed_orig.csv*   
 - *PROACT_preprocessed_rev.csv*   
 
-5. create files for longitudinal data 
-
+Longitudinal data    
 - *ALSFRS_orig.csv*    
 - *ALSFRS_rev.csv*   
 - *fvc.csv*   
@@ -85,6 +84,9 @@ diag_delta < onset_delta)
 - *weight.csv*   
 - *vitalsign.csv*    
 - *lab.csv*    
+
+Survival data   
+- **survival.csv**    
 
 
 **survival_target.R**     
