@@ -1,57 +1,66 @@
-library(readxl)
-library(ggplot2)
-library(survival)
-library(survminer)
-library(extrafont)
-library(dplyr)
-library(tidyr)
-library(survival)
-library(writexl)
-library(lubridate)
-library(gmodels)
-library(moonBook)
-# install.packages("nparcomp") #kruskal walis test에서의 사후검정
-# install.packages("rmarkdown")
-library(nparcomp)
+---
+title: "BMR staging"
+subtitle: "version 1.0"
+author: "유일한"
+date: "'r format(Sys.Date())'"
+output: 
+  word_document:
+    fig_height: 4
+    fig_width: 4
+    toc: no
+    reference_docx: template.docx
+  pdf_document:
+    fig_height: 6
+    fig_width: 10
+    toc: no
+  html_document:
+    fig_height: 6
+    fig_width: 10
+    highlight: textmate
+    theme: cosmo
+    toc: yes
+    toc_depth: 3
+    toc_float: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.aligh="center", message = F, warning = F,fig.height = 4, cache=T, dpi=300, dev="tiff")
+```
+
+# 필요한 library로딩
+
+```{r echo=F}
 library(tidyverse)
 library(dlookr)
 library(broom)
 library(gridExtra)
-library(naniar)
-# install.packages("officer")
-# install.packages("epiDisplay")
-library(officer)
-# install.packages("VIM")
-# install.packages("tidyverse")
-library(VIM)
-# install.packages("dlookr")
-library(dlookr)
-# install.packages("data.table")
 library(data.table)
-# install.packages("RColorBrewer")
-library(RColorBrewer)
+library(knitr)
+library(writexl)
+library(lubridate)
+library(gmodels)
+library(moonBook)
+library(survival)
+library(survminer)
+library(epiDisplay)
 options("scipen"=100)
 options(max.print=1000000)
-
-
-
-
-
-# BMR stage dataset
+```
+# BMR stage data set
+```{r}
 bmr <- read.csv("stage_bmr.csv")
+```
 # ALSFRS-R score dataset
+```{r}
 alsfrs_r <- read.csv("alsfrs_rev.csv")
-
-
-
-
+```
 # merge ALSFRS-R score dataset and BMR stage dataset
+```{r}
 alsfrs_bmr <- bmr %>% left_join(alsfrs_r,by=c("SubjectID","feature_delta"))
-
-
-
-# characteristics of each stage
+```
+# # characteristics of each stage
 # distribution of ALSFRS-R total and domain scores at each stage
+```{r}
 alsfrs_bmr %>% group_by(bmr_stage) %>% summarise(alsfrs_mean=mean(ALSFRS_R_Total),alsfrs_sd=sd(ALSFRS_R_Total),
                                                  bulbar_mean=mean(bulbar),bulbar_sd=sd(bulbar),
                                                  motor_mean=mean(motor),motor_sd=sd(motor),
@@ -72,12 +81,10 @@ p_respiratory <- alsfrs_bmr %>% ggplot(aes(x=factor(bmr_stage),y=respiratory))+
   geom_boxplot(width=0.8,outlier.size=3,outlier.shape=16,outlier.color = "red")+
   theme(plot.title = element_text(hjust = 0.5))+
   labs(x="BMR stage",y="ALSFRS-R respiratory subscore")
-box_plot_bmr <- arrangeGrob(p_alsfrs,p_bulbar,p_motor,p_respiratory,nrow=2,ncol=2)
-ggsave(box_plot_bmr,file="D:/홍윤호교수님 연구/BMR staging1/boxplot_ALSFRS-R_BMR.tiff",dpi = 300)
-
-
-
+grid.arrange(p_alsfrs,p_bulbar,p_motor,p_respiratory,nrow=2,ncol=2)
+```
 # at what stages are patients enrolled? 
+```{r}
 enroll_stage_bmr <- alsfrs_bmr %>% filter(feature_delta==first(feature_delta)) %>% 
   ggplot(aes(bmr_stage))+
   geom_bar()+
@@ -85,11 +92,10 @@ enroll_stage_bmr <- alsfrs_bmr %>% filter(feature_delta==first(feature_delta)) %
   scale_x_continuous(breaks = seq(0,7))+
   theme_bw()+
   theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank())
-ggsave(enroll_stage_bmr,file="D:/홍윤호교수님 연구/BMR staging1/enroll_stage_bmr.tiff",dpi = 300)
-
-
-
+enroll_stage_bmr
+```
 # estimate the slope of ALSFRS-R total score within each stage (using linear regression), and then compare the slope of ALSFRS-R total score across stages 
+```{r}
 alsfrs_slope_bmr <- alsfrs_bmr %>% ggplot(aes(x=bmr_stage,y=ALSFRS_R_Total))+
   stat_summary(fun.data = mean_cl_normal)+
   geom_smooth(method='lm',formula = y~x)+
@@ -97,11 +103,10 @@ alsfrs_slope_bmr <- alsfrs_bmr %>% ggplot(aes(x=bmr_stage,y=ALSFRS_R_Total))+
   scale_x_continuous(breaks = seq(0,7))+
   theme_bw()+
   theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank())
-ggsave(alsfrs_slope_bmr,file="D:/홍윤호교수님 연구/BMR staging1/alsfrs_slope_bmr.tiff",dpi = 300)
-
-
-
+alsfrs_slope_bmr
+```
 # Changes of stages with disease progression 
+```{r}
 alsfrs_bmr %>% group_by(SubjectID) %>% ggplot(aes(x=ALSFRS_R_Total,y=bmr_stage,col(first(bmr_stage))))+
   stat_summary(fun.data = mean_cl_normal)+
   geom_smooth(method='lm',formula = y~x)+
@@ -109,26 +114,5 @@ alsfrs_bmr %>% group_by(SubjectID) %>% ggplot(aes(x=ALSFRS_R_Total,y=bmr_stage,c
   scale_x_continuous(breaks = seq(0,48,by=6))+
   theme_bw()+
   theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank())
+```
 
-
-
-# distribution of ALS stage last recorded in 12 month period by baseline stage, exclude patients with fu period of less than 9 months 
-alsfrs_bmr %>% group_by(SubjectID) %>% filter(sum((which(is.numeric(feature_delta),~.x>=11&.x<=13))>=1))
-
-
-
-# standardised time from symptom onset to each stage for only deceased patients 
-
-
-
-
-# stage transition probabilities (based on Markov model) waterfall plot to display how the stage progress with time stay at each stage 
-
-
-
-
-
-
-
-save.image("BMR staging analysis.RData")
-load("BMR staging analysis.RData")
