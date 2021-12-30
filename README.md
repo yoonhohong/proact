@@ -232,3 +232,7 @@ specific questions to be addressed
 
 ##**characteristics of each stage.R, characteristics of each stage.Rmd**
 BMR, King, MiToS stage별 ALSFRS score exploration 스크립트, 마크다운
+
+
+##**stages of patients at the time of diagnosed and enrolled**
+첫 방문시점의 BMR, King, MiToS stage분포 확인
