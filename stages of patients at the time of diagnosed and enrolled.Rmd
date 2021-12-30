@@ -1,0 +1,71 @@
+---
+title: "characteristics of each stage"
+subtitle: "distribution of ALSFRS-R total and domain scores at each stage"
+author: "Ilhan Yoo"
+date: "r format(Sys.Date())"
+output: word_document:
+  fig_height: 4
+  fig_width: 4
+  toc: no
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.align="center", message=F, warning=F, dpi = 300, dev="tiff")
+```
+
+## library loading
+
+```{r}
+library(tidyverse)
+```
+
+## load datasets
+# BMR stage dataset
+# dead subjects dataset
+# King and MiToS stage dataset, subjectid의 이름은 bmr stage dataset과 같은 SubjectID로 변경 
+# ALSFRS-R score dataset
+
+```{r}
+bmr <- read.csv("stage_bmr.csv")
+king_mitos <- read.csv("stage_king_mitos.csv") %>% rename(SubjectID=subjectid)
+```
+## 첫 방문시의 BMR stage 확인
+# 0: 189, 1:10546, 2:9814, 3:6127, 4:1723, 5:344, 6:2
+```{r}
+bmr %>% group_by(SubjectID) %>% 
+  mutate(first_bmr=first(bmr_stage)) %>%
+  ungroup() %>% 
+  ggplot(aes(x=first_bmr))+
+  geom_bar()+
+  coord_cartesian(xlim=c(-1,6))+
+  theme_bw()+
+  theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank())+
+  labs(x="BMR stage at first visit",y="Number of subjects")
+```
+
+## 첫방문시의 King's stage확인
+# 1:6878, 2:8228, 3:6700, 4:6939
+```{r}
+king_mitos %>% group_by(SubjectID) %>% 
+  mutate(first_king=first(king)) %>%
+  ungroup() %>% 
+  ggplot(aes(x=first_king))+
+  geom_bar()+
+  theme_bw()+
+  theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank())+
+  labs(x="King's stage at first visit",y="Number of subjects")
+```
+
+## 첫방문시의 MiToS stage확인
+# 0:23354, 1:4980, 2:380, 3:31
+```{r}
+king_mitos %>% group_by(SubjectID) %>% 
+  mutate(first_mitos=first(mitos)) %>%
+  ungroup() %>% 
+  ggplot(aes(x=first_mitos))+
+  geom_bar()+
+  theme_bw()+
+  theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank())+
+  labs(x="MiToS stage at first visit",y="Number of subjects")
+```
+
