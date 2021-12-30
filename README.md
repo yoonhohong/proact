@@ -226,4 +226,9 @@ specific questions to be addressed
 - can we estimate disease stage at specific time point (e.g., at enrollment) w/o the whole sequence of observations?      
 - comparison of HMM stages with King's and the Mito's stages    
 
+----------------------------------------
+유일한 작성
 
+
+##**characteristics of each stage.R, characteristics of each stage.R**
+BMR, King, MiToS stage별 ALSFRS score exploration 스크립트, 마크다운
