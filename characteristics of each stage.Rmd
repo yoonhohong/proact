@@ -13,22 +13,119 @@ output: word_document:
 knitr::opts_chunk$set(echo = TRUE, fig.align="center", message=F, warning=F, dpi = 300, dev="tiff")
 ```
 
-## R Markdown
+## library loading
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r cars}
-summary(cars)
+```{r}
+library(tidyverse)
 ```
 
-## Including Plots
+## load datasets
+# BMR stage dataset
+# dead subjects dataset
+# King and MiToS stage dataset, subjectid의 이름은 bmr stage dataset과 같은 SubjectID로 변경 
+# ALSFRS-R score dataset
 
-You can also embed plots, for example:
-
-```{r pressure, echo=FALSE}
-plot(pressure)
+```{r}
+bmr <- read.csv("stage_bmr.csv")
+surv <- read.csv("survival.csv")
+king_mitos <- read.csv("stage_king_mitos.csv") %>% rename(SubjectID=subjectid)
+alsfrs_r <- read.csv("alsfrs_rev.csv")
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+## merge dataset for analysis
+# merge ALSFRS-R score dataset and BMR stage dataset
+# merge ALSFRS-R score dataset and King and MiToS stage dataset
+```{r}
+alsfrs_bmr <- bmr %>% left_join(alsfrs_r,by=c("SubjectID","feature_delta"))
+alsfrs_king_mitos <- king_mitos %>% left_join(alsfrs_r,by=c("SubjectID","feature_delta"))
+```
+
+## BMR stage 7인 subject들의 ALSFRS-R score확인 
+```{r}
+alsfrs_bmr %>% filter(bmr_stage==7) %>% group_by(ALSFRS_R_Total) %>% tally()
+```
+
+## BMR stage 7인 subject의 ALSFRS-R 9,12,17,34인 경우 1명씩 제외, NA값은 남겨놓음 
+
+```{r}
+temp <- alsfrs_bmr %>% filter(bmr_stage==7&!is.na(ALSFRS_R_Total))
+alsfrs_bmr1 <- alsfrs_bmr %>% anti_join(temp)
+rm(temp)
+```
+
+## ALSFRS total score and subscore divided into 3 domains according to BMR stage
+```{r}
+alsfrs_bmr1 %>% group_by(bmr_stage) %>% summarise(alsfrs_mean=mean(ALSFRS_R_Total),alsfrs_sd=sd(ALSFRS_R_Total),
+                                                 bulbar_mean=mean(bulbar),bulbar_sd=sd(bulbar),
+                                                 motor_mean=mean(motor),motor_sd=sd(motor),
+                                                 respiratory_mean=mean(respiratory),respiratory_sd=sd(respiratory))
+```
+
+## BMR stage-ALSFRS-R plot without BMR stage 7
+```{r}
+alsfrs_bmr1 %>% ggplot(aes(x=factor(bmr_stage),y=ALSFRS_R_Total))+
+  geom_boxplot(width=0.8,outlier.size=3,outlier.shape=16,outlier.color = "red")+
+  theme(plot.title = element_text(hjust = 0.5))+
+  coord_cartesian(xlim = c(0,7))+
+  labs(x="BMR stage",y="ALSFRS-R")
+```
+
+## King's stage 5인 subject들의 ALSFRS-R score확인 
+
+```{r}
+alsfrs_king_mitos %>% filter(king==5) %>% group_by(ALSFRS_R_Total) %>% tally()
+```
+
+## King's stage 5인 subject의 ALSFRS-R 9,12,17,34인 경우 1명씩 제외, NA값은 남겨놓음 
+```{r}
+temp <- alsfrs_king_mitos %>% filter(king==5&!is.na(ALSFRS_R_Total))
+alsfrs_king_mitos1 <- alsfrs_king_mitos %>% anti_join(temp)
+rm(temp)
+```
+
+## ALSFRS total score and subscore divided into 3 domains according to King stage
+```{r}
+alsfrs_king_mitos %>% group_by(king) %>% summarise(alsfrs_mean=mean(ALSFRS_R_Total),alsfrs_sd=sd(ALSFRS_R_Total),
+                                                 bulbar_mean=mean(bulbar),bulbar_sd=sd(bulbar),
+                                                 motor_mean=mean(motor),motor_sd=sd(motor),
+                                                 respiratory_mean=mean(respiratory),respiratory_sd=sd(respiratory))
+```
+
+## King's stage-ALSFRS-R plot without King's stage 5
+```{r}
+alsfrs_king_mitos1 %>% ggplot(aes(x=factor(king),y=ALSFRS_R_Total))+
+  geom_boxplot(width=0.8,outlier.size=3,outlier.shape=16,outlier.color = "red")+
+  theme(plot.title = element_text(hjust = 0.5))+
+  coord_cartesian(xlim = c(1,4))+
+  labs(x="King's stage",y="ALSFRS-R")
+
+```
+
+## MiToS stage 5인 subject들의 ALSFRS-R score확인 
+```{r}
+alsfrs_king_mitos %>% filter(mitos==5) %>% group_by(ALSFRS_R_Total) %>% tally()
+```
+
+## MiToS stage 5인 subject의 ALSFRS-R 9,12,17,34인 경우 1명씩 제외, NA값은 남겨놓음 
+```{r}
+temp <- alsfrs_king_mitos %>% filter(king==5&!is.na(ALSFRS_R_Total))
+alsfrs_king_mitos1 <- alsfrs_king_mitos %>% anti_join(temp)
+rm(temp)
+```
+
+## ALSFRS total score and subscore divided into 3 domains according to MiToS stage
+```{r}
+alsfrs_king_mitos1 %>% group_by(mitos) %>% summarise(alsfrs_mean=mean(ALSFRS_R_Total),alsfrs_sd=sd(ALSFRS_R_Total),
+                                                 bulbar_mean=mean(bulbar),bulbar_sd=sd(bulbar),
+                                                 motor_mean=mean(motor),motor_sd=sd(motor),
+                                                 respiratory_mean=mean(respiratory),respiratory_sd=sd(respiratory))
+```
+
+## MiToS stage-ALSFRS-R plot without MiToS stage 5
+```{r}
+alsfrs_king_mitos1 %>% ggplot(aes(x=factor(mitos),y=ALSFRS_R_Total))+
+  geom_boxplot(width=0.8,outlier.size=3,outlier.shape=16,outlier.color = "red")+
+  theme(plot.title = element_text(hjust = 0.5))+
+  coord_cartesian(xlim = c(1,5))+
+  labs(x="MiToS stage",y="ALSFRS-R")
+```
