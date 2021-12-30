@@ -230,5 +230,5 @@ specific questions to be addressed
 유일한 작성
 
 
-##**characteristics of each stage.R, characteristics of each stage.R**
+##**characteristics of each stage.R, characteristics of each stage.Rmd**
 BMR, King, MiToS stage별 ALSFRS score exploration 스크립트, 마크다운
