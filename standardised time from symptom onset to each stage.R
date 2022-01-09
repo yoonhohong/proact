@@ -1,0 +1,70 @@
+library(tidyverse)
+library(gridExtra)
+
+# BMR stage dataset
+bmr <- read.csv("stage_bmr.csv")
+# King and MiToS stage dataset, subjectid의 이름은 bmr stage dataset과 같은 SubjectID로 변경 
+king_mitos <- read.csv("stage_king_mitos.csv") %>% rename(SubjectID=subjectid)
+
+
+
+# standardised time from symptom onset to each stage for only deceased patients 
+# alsfrs_death: deceased patient dataset
+surv <- read.csv("survival.csv")
+clinical_info <- read.csv("PROACT_preprocessed.csv")
+death <- surv %>% filter(status==1)
+
+
+# clinical info정보 import, onset으로부터 경과시간 계산 
+bmr_death <- alsfrs_bmr %>% filter(SubjectID %in% death$SubjectID) %>% merge(clinical_info, all.x = T, by="SubjectID")
+bmr_death <- bmr_death %>% mutate(time_from_onset=round(abs(onset_delta)/30,2)+feature_delta,
+                                        time_from_diag=round(abs(diag_delta)/30,2)+feature_delta)
+king_mitos_death <- king_mitos %>% filter(SubjectID %in% death$SubjectID) %>% merge(clinical_info, all.x = T, by="SubjectID")
+king_mitos_death <- king_mitos_death %>% mutate(time_from_onset=round(abs(onset_delta)/30,2)+feature_delta,
+                                        time_from_diag=round(abs(diag_delta)/30,2)+feature_delta)
+
+
+
+
+# standardised time 계산 & stage가 death인 경우 standardized time이 1이 아닌 경우는 제외 
+bmr_death <- bmr_death %>% group_by(SubjectID) %>% 
+  mutate(stan_time=time_from_onset/max(time_from_onset)) %>% 
+  arrange(SubjectID,feature_delta)
+temp <- bmr_death %>% filter(bmr_stage==7&stan_time<1)
+bmr_death <- setdiff(bmr_death,temp)
+
+king_mitos_death <- king_mitos_death %>% group_by(SubjectID) %>% 
+  mutate(stan_time=time_from_onset/max(time_from_onset)) %>% 
+  arrange(SubjectID,feature_delta)
+temp <- king_mitos_death %>% filter(king==5&stan_time<1)
+king_mitos_death <- setdiff(king_mitos_death,temp)
+
+
+
+# standardised median time plot, subject별로 BMR stage내에서 stage변하기 직전의 time from onset으로 standardized time계산
+# BMR stage별 standardized median time plot 
+p_bmr <- bmr_death %>% group_by(SubjectID,bmr_stage) %>% 
+  filter(feature_delta==max(feature_delta)) %>% 
+  ungroup() %>% 
+  ggplot(aes(factor(bmr_stage),stan_time,fill=factor(bmr_stage)))+
+  geom_boxplot()+
+  theme(panel.grid = element_blank())+
+  coord_flip()+
+  labs(x="BMR stage",y="Standardized median time",fill="BMR stage")
+p_king <- king_mitos_death %>% group_by(SubjectID,king) %>% 
+  filter(feature_delta==max(feature_delta)) %>% 
+  ungroup() %>% 
+  ggplot(aes(factor(king),stan_time,fill=factor(king)))+
+  geom_boxplot()+
+  theme(panel.grid = element_blank())+
+  coord_flip()+
+  labs(x="King's stage",y="Standardized median time",fill="King's stage")
+p_mitos <- king_mitos_death %>% group_by(SubjectID,mitos) %>% 
+  filter(feature_delta==max(feature_delta)) %>% 
+  ungroup() %>% 
+  ggplot(aes(factor(mitos),stan_time,fill=factor(mitos)))+
+  geom_boxplot()+
+  theme(panel.grid = element_blank())+
+  coord_flip()+
+  labs(x="MiToS stage",y="Standardized median time",fill="MiToS stage")
+grid.arrange(p_bmr,p_king,p_mitos,ncol=1)
