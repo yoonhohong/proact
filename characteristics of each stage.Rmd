@@ -28,7 +28,7 @@ library(tidyverse)
 ```{r}
 bmr <- read.csv("stage_bmr.csv")
 surv <- read.csv("survival.csv")
-king_mitos <- read.csv("stage_king_mitos.csv") %>% rename(SubjectID=subjectid)
+king_mitos <- read.csv("stage_king_mitos.csv") 
 alsfrs_r <- read.csv("alsfrs_rev.csv")
 ```
 
@@ -65,8 +65,8 @@ alsfrs_bmr1 %>% group_by(bmr_stage) %>% summarise(alsfrs_mean=mean(ALSFRS_R_Tota
 ```{r}
 alsfrs_bmr1 %>% ggplot(aes(x=factor(bmr_stage),y=ALSFRS_R_Total))+
   geom_boxplot(width=0.8,outlier.size=3,outlier.shape=16,outlier.color = "red")+
-  theme(plot.title = element_text(hjust = 0.5))+
-  coord_cartesian(xlim = c(0,7))+
+  theme(legend.position = "none",panel.grid.major = element_blank(),panel.grid.minor = element_blank())+
+  theme_classic()+
   labs(x="BMR stage",y="ALSFRS-R")
 ```
 
@@ -95,10 +95,10 @@ alsfrs_king_mitos %>% group_by(king) %>% summarise(alsfrs_mean=mean(ALSFRS_R_Tot
 ```{r}
 alsfrs_king_mitos1 %>% ggplot(aes(x=factor(king),y=ALSFRS_R_Total))+
   geom_boxplot(width=0.8,outlier.size=3,outlier.shape=16,outlier.color = "red")+
-  theme(plot.title = element_text(hjust = 0.5))+
-  coord_cartesian(xlim = c(1,4))+
+  theme(legend.position = "none",panel.grid.major = element_blank(),panel.grid.minor = element_blank())+
+  theme_classic()+
+  coord_cartesian(xlim = c(1,5))+
   labs(x="King's stage",y="ALSFRS-R")
-
 ```
 
 ## MiToS stage 5인 subject들의 ALSFRS-R score확인 
@@ -125,7 +125,8 @@ alsfrs_king_mitos1 %>% group_by(mitos) %>% summarise(alsfrs_mean=mean(ALSFRS_R_T
 ```{r}
 alsfrs_king_mitos1 %>% ggplot(aes(x=factor(mitos),y=ALSFRS_R_Total))+
   geom_boxplot(width=0.8,outlier.size=3,outlier.shape=16,outlier.color = "red")+
-  theme(plot.title = element_text(hjust = 0.5))+
-  coord_cartesian(xlim = c(1,5))+
+  theme(legend.position = "none",panel.grid.major = element_blank(),panel.grid.minor = element_blank())+
+  theme_classic()+
+  coord_cartesian(xlim = c(1,6))+
   labs(x="MiToS stage",y="ALSFRS-R")
 ```

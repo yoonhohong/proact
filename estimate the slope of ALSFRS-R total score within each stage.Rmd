@@ -26,7 +26,7 @@ library(broom)
 ```{r}
 bmr <- read.csv("stage_bmr.csv")
 surv <- read.csv("survival.csv")
-king_mitos <- read.csv("stage_king_mitos.csv") %>% rename(SubjectID=subjectid)
+king_mitos <- read.csv("stage_king_mitos.csv")
 alsfrs_r <- read.csv("alsfrs_rev.csv")
 ```
 
@@ -71,8 +71,6 @@ temp_king_mitos %>% filter(king<=4) %>% ggplot(aes(feature_delta,ALSFRS_R_Total,
   labs(x="Visit time (months)")+
   theme_bw()+
   theme(legend.position = "none",panel.grid.major = element_blank(),panel.grid.minor = element_blank())
-
-
 ```
 
 

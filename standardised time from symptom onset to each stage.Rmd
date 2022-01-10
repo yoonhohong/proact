@@ -26,7 +26,7 @@ library(gridExtra)
 # King and MiToS stage dataset, subjectid의 이름은 bmr stage dataset과 같은 SubjectID로 변경 
 ```{r}
 bmr <- read.csv("stage_bmr.csv")
-king_mitos <- read.csv("stage_king_mitos.csv") %>% rename(SubjectID=subjectid)
+king_mitos <- read.csv("stage_king_mitos.csv")
 ```
 
 

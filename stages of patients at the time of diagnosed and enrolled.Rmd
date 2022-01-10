@@ -21,14 +21,14 @@ library(tidyverse)
 
 ## load datasets
 # BMR stage dataset
-# dead subjects dataset
 # King and MiToS stage dataset, subjectid의 이름은 bmr stage dataset과 같은 SubjectID로 변경 
-# ALSFRS-R score dataset
 
 ```{r}
 bmr <- read.csv("stage_bmr.csv")
-king_mitos <- read.csv("stage_king_mitos.csv") %>% rename(SubjectID=subjectid)
+king_mitos <- read.csv("stage_king_mitos.csv")
 ```
+
+
 ## 첫 방문시의 BMR stage 확인
 # 0: 189, 1:10546, 2:9814, 3:6127, 4:1723, 5:344, 6:2
 ```{r}
@@ -43,6 +43,8 @@ bmr %>% group_by(SubjectID) %>%
   labs(x="BMR stage at first visit",y="Number of subjects")
 ```
 
+
+
 ## 첫방문시의 King's stage확인
 # 1:6878, 2:8228, 3:6700, 4:6939
 ```{r}
@@ -55,6 +57,8 @@ king_mitos %>% group_by(SubjectID) %>%
   theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank())+
   labs(x="King's stage at first visit",y="Number of subjects")
 ```
+
+
 
 ## 첫방문시의 MiToS stage확인
 # 0:23354, 1:4980, 2:380, 3:31

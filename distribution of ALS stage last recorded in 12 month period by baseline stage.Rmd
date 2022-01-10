@@ -26,7 +26,7 @@ library(gridExtra)
 # King and MiToS stage dataset, subjectid의 이름은 bmr stage dataset과 같은 SubjectID로 변경 
 ```{r}
 bmr <- read.csv("stage_bmr.csv")
-king_mitos <- read.csv("stage_king_mitos.csv") %>% rename(SubjectID=subjectid)
+king_mitos <- read.csv("stage_king_mitos.csv")
 ```
 
 
@@ -41,7 +41,7 @@ bmr_feature_delta_12mo <- bmr %>% group_by(SubjectID) %>%
 king_mitos_feature_delta_12mo <- king_mitos %>% group_by(SubjectID) %>% 
   mutate(first_king=first(king),first_mitos=first(mitos)) %>%
   ungroup() %>% 
-  filter(between(feature_delta,9,15)
+  filter(between(feature_delta,9,15))
 ```
 
 
@@ -66,16 +66,19 @@ p_bmr <- bmr_feature_delta_12mo %>% ggplot(aes(x=factor(first_bmr),fill=factor(b
   geom_bar(position="dodge")+
   theme_bw()+
   labs(title="distribution of BMR stage after 12 months",x="Baseline BMR stage",y="Number of subject",fill="BMR stage after \n about 12 months")+
+  guides(fill=guide_legend(ncol=2))+
   theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),plot.title = element_text(hjust = 0.5))
 p_king <-king_mitos_feature_delta_12mo %>% ggplot(aes(x=factor(first_king),fill=factor(king)))+
   geom_bar(position="dodge")+
   theme_bw()+
   labs(title="distribution of King's stage after 12 months",x="Baseline King's stage",y="Number of subject",fill="King's stage after \n about 12 months")+
+  guides(fill=guide_legend(ncol=2))+
   theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),plot.title = element_text(hjust = 0.5))
 p_mitos <-king_mitos_feature_delta_12mo %>% ggplot(aes(x=factor(first_mitos),fill=factor(mitos)))+
   geom_bar(position="dodge")+
   theme_bw()+
   labs(title="distribution of MiToS stage after 12 months",x="Baseline MiToS stage",y="Number of subject",fill="MiToS stage after \n about 12 months")+
+  guides(fill=guide_legend(ncol=2))+
   theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),plot.title = element_text(hjust = 0.5))
 ```
 
