@@ -1,0 +1,132 @@
+---
+title: "characteristics of each stage"
+subtitle: "distribution of ALSFRS-R total and domain scores at each stage"
+author: "Ilhan Yoo"
+date: "r format(Sys.Date())"
+output: word_document:
+  fig_height: 4
+  fig_width: 4
+  toc: no
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.align="center", message=F, warning=F, dpi = 300, dev="tiff")
+```
+
+## library loading
+
+```{r}
+library(tidyverse)
+```
+
+## load datasets
+# BMR stage dataset
+# dead subjects dataset
+# King and MiToS stage dataset, subjectid의 이름은 bmr stage dataset과 같은 SubjectID로 변경 
+# ALSFRS-R score dataset
+
+```{r}
+bmr <- read.csv("stage_bmr.csv")
+surv <- read.csv("survival.csv")
+king_mitos <- read.csv("stage_king_mitos.csv") 
+alsfrs_r <- read.csv("alsfrs_rev.csv")
+```
+
+## merge dataset for analysis
+# merge ALSFRS-R score dataset and BMR stage dataset
+# merge ALSFRS-R score dataset and King and MiToS stage dataset
+```{r}
+alsfrs_bmr <- bmr %>% left_join(alsfrs_r,by=c("SubjectID","feature_delta"))
+alsfrs_king_mitos <- king_mitos %>% left_join(alsfrs_r,by=c("SubjectID","feature_delta"))
+```
+
+## BMR stage 7인 subject들의 ALSFRS-R score확인 
+```{r}
+alsfrs_bmr %>% filter(bmr_stage==7) %>% group_by(ALSFRS_R_Total) %>% tally()
+```
+
+## BMR stage 7인 subject의 ALSFRS-R 9,12,17,34인 경우 1명씩 제외, NA값은 남겨놓음 
+
+```{r}
+temp <- alsfrs_bmr %>% filter(bmr_stage==7&!is.na(ALSFRS_R_Total))
+alsfrs_bmr1 <- alsfrs_bmr %>% anti_join(temp)
+rm(temp)
+```
+
+## ALSFRS total score and subscore divided into 3 domains according to BMR stage
+```{r}
+alsfrs_bmr1 %>% group_by(bmr_stage) %>% summarise(alsfrs_mean=mean(ALSFRS_R_Total),alsfrs_sd=sd(ALSFRS_R_Total),
+                                                 bulbar_mean=mean(bulbar),bulbar_sd=sd(bulbar),
+                                                 motor_mean=mean(motor),motor_sd=sd(motor),
+                                                 respiratory_mean=mean(respiratory),respiratory_sd=sd(respiratory))
+```
+
+## BMR stage-ALSFRS-R plot without BMR stage 7
+```{r}
+alsfrs_bmr1 %>% ggplot(aes(x=factor(bmr_stage),y=ALSFRS_R_Total))+
+  geom_boxplot(width=0.8,outlier.size=3,outlier.shape=16,outlier.color = "red")+
+  theme(legend.position = "none",panel.grid.major = element_blank(),panel.grid.minor = element_blank())+
+  theme_classic()+
+  labs(x="BMR stage",y="ALSFRS-R")
+```
+
+## King's stage 5인 subject들의 ALSFRS-R score확인 
+
+```{r}
+alsfrs_king_mitos %>% filter(king==5) %>% group_by(ALSFRS_R_Total) %>% tally()
+```
+
+## King's stage 5인 subject의 ALSFRS-R 9,12,17,34인 경우 1명씩 제외, NA값은 남겨놓음 
+```{r}
+temp <- alsfrs_king_mitos %>% filter(king==5&!is.na(ALSFRS_R_Total))
+alsfrs_king_mitos1 <- alsfrs_king_mitos %>% anti_join(temp)
+rm(temp)
+```
+
+## ALSFRS total score and subscore divided into 3 domains according to King stage
+```{r}
+alsfrs_king_mitos %>% group_by(king) %>% summarise(alsfrs_mean=mean(ALSFRS_R_Total),alsfrs_sd=sd(ALSFRS_R_Total),
+                                                 bulbar_mean=mean(bulbar),bulbar_sd=sd(bulbar),
+                                                 motor_mean=mean(motor),motor_sd=sd(motor),
+                                                 respiratory_mean=mean(respiratory),respiratory_sd=sd(respiratory))
+```
+
+## King's stage-ALSFRS-R plot without King's stage 5
+```{r}
+alsfrs_king_mitos1 %>% ggplot(aes(x=factor(king),y=ALSFRS_R_Total))+
+  geom_boxplot(width=0.8,outlier.size=3,outlier.shape=16,outlier.color = "red")+
+  theme(legend.position = "none",panel.grid.major = element_blank(),panel.grid.minor = element_blank())+
+  theme_classic()+
+  coord_cartesian(xlim = c(1,5))+
+  labs(x="King's stage",y="ALSFRS-R")
+```
+
+## MiToS stage 5인 subject들의 ALSFRS-R score확인 
+```{r}
+alsfrs_king_mitos %>% filter(mitos==5) %>% group_by(ALSFRS_R_Total) %>% tally()
+```
+
+## MiToS stage 5인 subject의 ALSFRS-R 9,12,17,34인 경우 1명씩 제외, NA값은 남겨놓음 
+```{r}
+temp <- alsfrs_king_mitos %>% filter(king==5&!is.na(ALSFRS_R_Total))
+alsfrs_king_mitos1 <- alsfrs_king_mitos %>% anti_join(temp)
+rm(temp)
+```
+
+## ALSFRS total score and subscore divided into 3 domains according to MiToS stage
+```{r}
+alsfrs_king_mitos1 %>% group_by(mitos) %>% summarise(alsfrs_mean=mean(ALSFRS_R_Total),alsfrs_sd=sd(ALSFRS_R_Total),
+                                                 bulbar_mean=mean(bulbar),bulbar_sd=sd(bulbar),
+                                                 motor_mean=mean(motor),motor_sd=sd(motor),
+                                                 respiratory_mean=mean(respiratory),respiratory_sd=sd(respiratory))
+```
+
+## MiToS stage-ALSFRS-R plot without MiToS stage 5
+```{r}
+alsfrs_king_mitos1 %>% ggplot(aes(x=factor(mitos),y=ALSFRS_R_Total))+
+  geom_boxplot(width=0.8,outlier.size=3,outlier.shape=16,outlier.color = "red")+
+  theme(legend.position = "none",panel.grid.major = element_blank(),panel.grid.minor = element_blank())+
+  theme_classic()+
+  coord_cartesian(xlim = c(1,6))+
+  labs(x="MiToS stage",y="ALSFRS-R")
+```
