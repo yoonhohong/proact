@@ -226,4 +226,26 @@ specific questions to be addressed
 - can we estimate disease stage at specific time point (e.g., at enrollment) w/o the whole sequence of observations?      
 - comparison of HMM stages with King's and the Mito's stages    
 
+----------------------------------------
+유일한 작성
 
+
+##**characteristics of each stage.R, characteristics of each stage.Rmd**
+BMR, King, MiToS stage별 ALSFRS score exploration 스크립트, 마크다운
+
+
+##**stages of patients at the time of diagnosed and enrolled**
+첫 방문시점의 BMR, King, MiToS stage분포 확인
+
+
+##**distribution of ALS stage last recorded in 12 month period by baseline stage**
+9-15개월 사이에 f/u ALSFRS-R이 있는 대상자들 중 12개월에 최대한 근접한 f/u data가 있는 대상자들의 baseline대비 f/u stage의 변화 확인
+
+##**standardised time from symptom onset to each stage**
+사망한 데이터가 있는 대상자들만 대상으로 standardised time비교 (exclusion: stage가 사망한 상태이나 standardised time이 1이 아닌 대상자는 제외)
+
+##**stage transition probabilities (based on Markov model)
+f/u시점의 stage변화 확률을 계산하여 confusion matrix로 표현
+
+##**Changes of stages with disease progression plot
+f/u 시점에 따른 stage의 변화 확인

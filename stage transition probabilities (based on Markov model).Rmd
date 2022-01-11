@@ -1,0 +1,97 @@
+---
+ titie: "Changes of stages with disease progression"
+ author: "Ilhan Yoo"
+ date: "r format(Sys.Date())"
+ output: word_document: 
+ fig_height: 20
+ fig_width: 8
+ toc: no
+ ---
+ 
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo=TRUE,fig.align="center",message=F,warning=F,dpi=300,dev="tiff")
+```
+
+
+
+# library loading
+```{r eval=FALSE}
+library(tidyverse)
+library(gridExtra)
+library(reshape)
+```
+
+
+## load datasets
+# BMR stage dataset
+# King and MiToS stage dataset, subjectid의 이름은 bmr stage dataset과 같은 SubjectID로 변경 
+
+```{r}
+bmr <- read.csv("stage_bmr.csv")
+king_mitos <- read.csv("stage_king_mitos.csv") 
+```
+
+# 이전시점과 다음 방문 시점의 BMR stage를 비교하여 transition probability table 만듦 
+```{r}
+bmr_tran <- bmr %>% group_by(SubjectID) %>% 
+  mutate(bmr_stage_next=lead(bmr_stage)) %>% 
+  filter(!is.na(bmr_stage_next))
+bmr_tran_mtrx_prop <- prop.table(table(bmr_tran$bmr_stage_next,bmr_tran$bmr_stage),2)
+
+king_tran <- king_mitos %>% group_by(SubjectID) %>% 
+  mutate(king_stage_next=lead(king)) %>% 
+  filter(!is.na(king_stage_next))
+king_tran_mtrx_prop <- prop.table(table(king_tran$king_stage_next,king_tran$king),2)
+
+mitos_tran <- king_mitos %>% group_by(SubjectID) %>% 
+  mutate(mitos_stage_next=lead(mitos)) %>% 
+  filter(!is.na(mitos_stage_next))
+mitos_tran_mtrx_prop <- prop.table(table(mitos_tran$mitos_stage_next,mitos_tran$mitos),2)
+```
+
+
+
+# transition probability transformation: matrix to dataframe form 
+```{r}
+bmr_tran_mtrx_prop1 <- melt(bmr_tran_mtrx_prop)
+king_tran_mtrx_prop1 <- melt(king_tran_mtrx_prop)
+mitos_tran_mtrx_prop1 <- melt(mitos_tran_mtrx_prop)
+```
+
+
+
+# transition probability plot with confusion matrix form
+```{r}
+p_bmr <- bmr_tran_mtrx_prop1 %>% ggplot(aes(x=Var.2,y=Var.1,fill=value))+
+  geom_raster()+
+  geom_text(aes(label=round(value,2)))+ 
+  labs(x="BMR stage",y="BMR stage of next visit",fill="Transition probability")+
+  scale_fill_viridis_c()+
+  scale_x_continuous(breaks=seq(0,6,by=1))+
+  scale_y_continuous(breaks=seq(0,7,by=1))+
+  theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank())
+p_king <- king_tran_mtrx_prop1 %>% ggplot(aes(x=Var.2,y=Var.1,fill=value))+
+  geom_raster()+
+  geom_text(aes(label=round(value,2)))+ 
+  labs(x="King's stage",y="King's stage of next visit",fill="Transition probability")+
+  scale_fill_viridis_c()+
+  scale_x_continuous(breaks=seq(0,4,by=1))+
+  scale_y_continuous(breaks=seq(0,5,by=1))+
+  theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank())
+p_mitos <- mitos_tran_mtrx_prop1 %>% ggplot(aes(x=Var.2,y=Var.1,fill=value))+
+  geom_raster()+
+  geom_text(aes(label=round(value,2)))+ 
+  labs(x="MiToS stage",y="MiToS stage of next visit",fill="Transition probability")+
+  scale_fill_viridis_c()+
+  scale_x_continuous(breaks=seq(0,4,by=1))+
+  scale_y_continuous(breaks=seq(0,5,by=1))+
+  theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank())
+```
+
+
+
+# merge 3 plots of each stage system
+```{r fig.height=20,fig.width=8}
+grid.arrange(p_bmr,p_king,p_mitos,ncol=1)
+```
+
