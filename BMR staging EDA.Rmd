@@ -21,11 +21,11 @@ library(reshape)
 ```
 
 ## load datasets
-# BMR stage dataset
-# dead subjects dataset
-# King and MiToS stage dataset
-# ALSFRS-R score dataset
-# clinical information dataset
+# bmr: BMR stage dataset
+# death: dead subjects dataset (dead subject filtered from survival dataset)
+# king_mitos: King and MiToS stage dataset
+# alsfrs_r: ALSFRS-R score dataset
+# clinical_info: clinical information dataset
 ```{r}
 bmr <- read.csv("stage_bmr.csv")
 surv <- read.csv("survival.csv")
@@ -35,14 +35,15 @@ alsfrs_r <- read.csv("alsfrs_rev.csv")
 clinical_info <- read.csv("PROACT_preprocessed.csv")
 ```
 ## merge dataset for analysis
-# merge ALSFRS-R score dataset and BMR stage dataset
-# merge ALSFRS-R score dataset and King and MiToS stage dataset
+# BMR stage에 대응하는 ALSFRS-R 확인위해 데이터셋 merge ALSFRS-R score dataset and BMR stage dataset
+# King, MiToS stage에 대응하는 ALSFRS-R 확인위해 데이터셋 merge ALSFRS-R score dataset and King and MiToS stage dataset
 ```{r}
 alsfrs_bmr <- bmr %>% left_join(alsfrs_r,by=c("SubjectID","feature_delta"))
 alsfrs_king_mitos <- king_mitos %>% left_join(alsfrs_r,by=c("SubjectID","feature_delta"))
 ```
 
 ## BMR stage 7인 subject들의 ALSFRS-R score확인 
+# BMR stage 7은 사망한 상태이므로 ALSFRS-R score가 있다면 잘못된 데이터이므로 filtering필요
 ```{r}
 alsfrs_bmr %>% filter(bmr_stage==7) %>% group_by(ALSFRS_R_Total) %>% tally()
 ```
@@ -54,14 +55,14 @@ temp <- alsfrs_bmr %>% filter(bmr_stage==7&!is.na(ALSFRS_R_Total))
 alsfrs_bmr1 <- alsfrs_bmr %>% anti_join(temp)
 rm(temp)
 ```
-## ALSFRS total score and subscore divided into 3 domains according to BMR stage
+## ALSFRS total score and subscore, which were divided into 3 domains from ALSFRS total score, according to BMR stage
 ```{r}
 alsfrs_bmr1 %>% group_by(bmr_stage) %>% summarise(alsfrs_mean=mean(ALSFRS_R_Total),alsfrs_sd=sd(ALSFRS_R_Total),
                                                  bulbar_mean=mean(bulbar),bulbar_sd=sd(bulbar),
                                                  motor_mean=mean(motor),motor_sd=sd(motor),
                                                  respiratory_mean=mean(respiratory),respiratory_sd=sd(respiratory))
 ```
-## BMR stage-ALSFRS-R plot without BMR stage 7
+## 사망하여 ALSFRS-R이 존재할 수 없는 stage 7를 제외한 나머지 BMR stage와 ALSFRS-R association 확인하는 plot  
 ```{r}
 p_bmr_1 <- alsfrs_bmr1 %>% ggplot(aes(x=factor(bmr_stage),y=ALSFRS_R_Total))+
   geom_boxplot(width=0.8,outlier.size=3,outlier.shape=16,outlier.color = "red")+
@@ -71,7 +72,7 @@ p_bmr_1 <- alsfrs_bmr1 %>% ggplot(aes(x=factor(bmr_stage),y=ALSFRS_R_Total))+
 ```
 
 ## King's stage 5인 subject들의 ALSFRS-R score확인 
-
+# King's stage 5는 사망한 상태이므로 ALSFRS-R score가 있다면 잘못된 데이터이므로 filtering필요
 ```{r}
 alsfrs_king_mitos %>% filter(king==5) %>% group_by(ALSFRS_R_Total) %>% tally()
 ```
@@ -83,7 +84,7 @@ alsfrs_king_mitos1 <- alsfrs_king_mitos %>% anti_join(temp)
 rm(temp)
 ```
 
-## ALSFRS total score and subscore divided into 3 domains according to King stage
+## ALSFRS total score and subscore, which were divided into 3 domains from ALSFRS total score, according to King stage
 ```{r}
 alsfrs_king_mitos %>% group_by(king) %>% summarise(alsfrs_mean=mean(ALSFRS_R_Total),alsfrs_sd=sd(ALSFRS_R_Total),
                                                  bulbar_mean=mean(bulbar),bulbar_sd=sd(bulbar),
@@ -92,6 +93,7 @@ alsfrs_king_mitos %>% group_by(king) %>% summarise(alsfrs_mean=mean(ALSFRS_R_Tot
 ```
 
 ## King's stage-ALSFRS-R plot without King's stage 5
+#사망하여 ALSFRS-R이 존재할 수 없는 stage 5를 제외한 나머지 King's stage와 ALSFRS-R association 확인하는 plot
 ```{r}
 p_king_1 <- alsfrs_king_mitos1 %>% ggplot(aes(x=factor(king),y=ALSFRS_R_Total))+
   geom_boxplot(width=0.8,outlier.size=3,outlier.shape=16,outlier.color = "red")+
@@ -102,6 +104,7 @@ p_king_1 <- alsfrs_king_mitos1 %>% ggplot(aes(x=factor(king),y=ALSFRS_R_Total))+
 ```
 
 ## MiToS stage 5인 subject들의 ALSFRS-R score확인 
+# MiToS stage 5는 사망한 상태이므로 ALSFRS-R score가 있다면 잘못된 데이터이므로 filtering필요
 ```{r}
 alsfrs_king_mitos %>% filter(mitos==5) %>% group_by(ALSFRS_R_Total) %>% tally()
 ```
@@ -113,7 +116,7 @@ alsfrs_king_mitos1 <- alsfrs_king_mitos %>% anti_join(temp)
 rm(temp)
 ```
 
-## ALSFRS total score and subscore divided into 3 domains according to MiToS stage
+## ALSFRS total score and subscore, which were divided into 3 domains from ALSFRS total score, according to MiToS stage
 ```{r}
 alsfrs_king_mitos1 %>% group_by(mitos) %>% summarise(alsfrs_mean=mean(ALSFRS_R_Total),alsfrs_sd=sd(ALSFRS_R_Total),
                                                  bulbar_mean=mean(bulbar),bulbar_sd=sd(bulbar),
@@ -122,6 +125,7 @@ alsfrs_king_mitos1 %>% group_by(mitos) %>% summarise(alsfrs_mean=mean(ALSFRS_R_T
 ```
 
 ## MiToS stage-ALSFRS-R plot without MiToS stage 5
+#사망하여 ALSFRS-R이 존재할 수 없는 stage 5를 제외한 나머지 MiToS stage와 ALSFRS-R association 확인하는 plot 
 ```{r}
 p_mitos_1 <- alsfrs_king_mitos1 %>% ggplot(aes(x=factor(mitos),y=ALSFRS_R_Total))+
   geom_boxplot(width=0.8,outlier.size=3,outlier.shape=16,outlier.color = "red")+
@@ -131,13 +135,14 @@ p_mitos_1 <- alsfrs_king_mitos1 %>% ggplot(aes(x=factor(mitos),y=ALSFRS_R_Total)
   labs(x="MiToS stage",y="ALSFRS-R")
 ```
 
-# merge 3 plot
+# BMR stage system이 ALSFRS-R의 변화를 잘 반영하는지를 King's,MiToS stage과 비교하기위해
+# BMR,King,MiToS stage plot merge시킴
 ```{r}
 grid.arrange(p_bmr_1,p_king_1,p_mitos_1,ncol=1)
 ```
 
-## 첫 방문시의 BMR stage 확인
-# 0: 189, 1:10546, 2:9814, 3:6127, 4:1723, 5:344, 6:2
+## 첫 방문시점의 BMR stage 별 subject수 확인
+# BMR stage 0: n=189, 1: n=10546, 2: n=9814, 3: n=6127, 4: n=1723, 5: n=344, 6: n=2
 ```{r}
 p_bmr_2 <- bmr %>% group_by(SubjectID) %>% 
   mutate(first_bmr=first(bmr_stage)) %>%
@@ -150,8 +155,8 @@ p_bmr_2 <- bmr %>% group_by(SubjectID) %>%
   labs(x="BMR stage at first visit",y="Number of subjects")
 ```
 
-## 첫방문시의 King's stage확인
-# 1:6878, 2:8228, 3:6700, 4:6939
+## 첫 방문시점의 King's stage 별 subject수 확인 
+# King's stage 1: n=6878, 2: n=8228, 3: n=6700, 4: n=6939
 ```{r}
 p_king_2 <- king_mitos %>% group_by(SubjectID) %>% 
   mutate(first_king=first(king)) %>%
@@ -165,8 +170,8 @@ p_king_2 <- king_mitos %>% group_by(SubjectID) %>%
 
 
 
-## 첫방문시의 MiToS stage확인
-# 0:23354, 1:4980, 2:380, 3:31
+## 첫 방문시점의 MiToS stage 별 subject수 확인 
+# MiToS stage 0: n=23354, 1: n=4980, 2: n=380, 3: n=31
 ```{r}
 p_mitos_2 <- king_mitos %>% group_by(SubjectID) %>% 
   mutate(first_mitos=first(mitos)) %>%
@@ -177,12 +182,12 @@ p_mitos_2 <- king_mitos %>% group_by(SubjectID) %>%
   theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank())+
   labs(x="MiToS stage at first visit",y="Number of subjects")
 ```
-# merge 3 plots  
+# 첫방문시점의 BMR, King's, MiToS stage 분포 비교  
 ```{r}
 grid.arrange(p_bmr_2,p_king_2,p_mitos_2)
 ```
 
-# exclude patients with only one record and merge the ALSFRS-R score to each subject at each visit time 
+# f/u시점의 ALSFRS변화를 보기위한 환자만 selection: 방문횟수가 2번이상인 환자만 남기고 나머지는 제외
 ```{r}
 temp_bmr <- bmr %>% group_by(SubjectID) %>% 
   mutate(visit=n()) %>% 
@@ -198,7 +203,7 @@ temp_king_mitos <- king_mitos %>% group_by(SubjectID) %>%
 ```
 
 
-# ALSFRS-R trajectory according to BMR stage exclude stage 7 which has no ALSFRS-R score
+# BMR stage에 따른 ALS의 진행에 따른 ALSFRS-R의 변화양상 확인 (ALSFRS-R score가 없는 BMR stage 7는 제외)
 ```{r}
 p_bmr_3 <- temp_bmr %>% filter(bmr_stage<=6) %>% ggplot(aes(feature_delta,ALSFRS_R_Total,col=factor(bmr_stage),group=factor(SubjectID)))+
   geom_line(alpha=0.2)+
@@ -212,7 +217,7 @@ p_bmr_3 <- temp_bmr %>% filter(bmr_stage<=6) %>% ggplot(aes(feature_delta,ALSFRS
 
 
 
-# ALSFRS-R trajectory according to King stage exclude stage 5 which has no ALSFRS-R score
+# King's stage에 따른 ALS의 진행에 따른 ALSFRS-R의 변화양상 확인 (ALSFRS-R score가 없는 King's stage 5는 제외) 
 ```{r}
 p_king_3 <- temp_king_mitos %>% filter(king<=4) %>% ggplot(aes(feature_delta,ALSFRS_R_Total,col=factor(king),group=factor(SubjectID)))+
   geom_line(alpha=0.2)+
@@ -226,7 +231,7 @@ p_king_3 <- temp_king_mitos %>% filter(king<=4) %>% ggplot(aes(feature_delta,ALS
 
 
 
-# ALSFRS-R trajectory according to MiToS stage exclude stage 5 which has no ALSFRS-R score
+# MiToS stage에 따른 ALS의 진행에 따른 ALSFRS-R의 변화양상 확인 (ALSFRS-R score가 없는 MiToS stage 5는 제외) 
 ```{r}
 p_mitos_3 <- temp_king_mitos %>% filter(mitos<=4) %>% ggplot(aes(feature_delta,ALSFRS_R_Total,col=factor(mitos),group=factor(SubjectID)))+
   geom_line(alpha=0.2)+
@@ -238,7 +243,7 @@ p_mitos_3 <- temp_king_mitos %>% filter(mitos<=4) %>% ggplot(aes(feature_delta,A
   theme(legend.position = "none",panel.grid.major = element_blank(),panel.grid.minor = element_blank())
 ```
 
-# merge 3 plots  
+# BMR stage가 stage가 더 높을수록 ALSFRS-R의 감소속도가 더 빠른지 확인하고 King, MiToS stage과 병의 진행을 잘 반영하는지 비교하기 위해 plot들을 merge하여 
 ```{r fig.height=10}
 grid.arrange(p_bmr_3,p_king_3,p_mitos_3)
 ```
@@ -257,7 +262,7 @@ temp_king_mitos <- king_mitos %>% group_by(SubjectID) %>%
 
 
 
-# changes of BMR stages with disease progression 
+# ALS가 악화됨에 따라서 BMR stage가 증가하는지와 증가속도 확인
 ```{r}
 p_bmr_4 <- temp_bmr %>% filter(bmr_stage<=6) %>% ggplot(aes(feature_delta,bmr_stage,col=factor(first_bmr),group=factor(SubjectID)))+
   geom_line(alpha=0.2)+
@@ -271,7 +276,7 @@ p_bmr_4 <- temp_bmr %>% filter(bmr_stage<=6) %>% ggplot(aes(feature_delta,bmr_st
 
 
 
-# changes of King's stages with disease progression 
+# ALS가 악화됨에 따라서 King's stage가 증가하는지와 증가속도 확인
 ```{r}
 p_king_4 <- temp_king_mitos %>% filter(king<=5) %>% ggplot(aes(feature_delta,king,col=factor(first_king),group=factor(SubjectID)))+
   geom_line(alpha=0.2)+
@@ -285,7 +290,7 @@ p_king_4 <- temp_king_mitos %>% filter(king<=5) %>% ggplot(aes(feature_delta,kin
 
 
 
-# changes of MiToS stages with disease progression 
+# ALS가 악화됨에 따라서 MiToS stage가 증가하는지와 증가속도 확인
 ```{r}
 p_mitos_4 <- temp_king_mitos %>% filter(mitos<=5) %>% ggplot(aes(feature_delta,mitos,col=factor(first_mitos),group=factor(SubjectID)))+
   geom_line(alpha=0.2)+
@@ -297,7 +302,7 @@ p_mitos_4 <- temp_king_mitos %>% filter(mitos<=5) %>% ggplot(aes(feature_delta,m
   geom_smooth(method=lm) 
 ```
 
-# merge 3 plots  
+# BMR stage가 ALS악화를 잘 반영하는지를 King,MiToS stage와 비교
 ```{r fig.height=10}
 grid.arrange(p_bmr_4,p_king_4,p_mitos_4)
 ```
@@ -331,7 +336,7 @@ king_mitos_feature_delta_12mo <- king_mitos_feature_delta_12mo %>% group_by(Subj
 
 
 
-# baseline stage에 따라서 12개월쯤(9~15개월 사이 f/u데이터 중 12개월에 가장 근접한 f/u 시점)의 stage변화
+# baseline stage에 따라서 12개월쯤(9~15개월 사이 f/u데이터 중 12개월에 가장 근접한 f/u 시점)의 stage변화 확인
 ```{r}
 p_bmr_5 <- bmr_feature_delta_12mo %>% ggplot(aes(x=factor(first_bmr),fill=factor(bmr_stage)))+
   geom_bar(position="dodge")+
@@ -353,7 +358,7 @@ p_mitos_5 <-king_mitos_feature_delta_12mo %>% ggplot(aes(x=factor(first_mitos),f
   theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank(),plot.title = element_text(hjust = 0.5))
 ```
 
-# merge 3 plots  
+# BMR stage의 12개월 지난 시점의 stage변화 분포를 확인하고 King,MiToS와 비교
 ```{r fig.height=10}
 grid.arrange(p_bmr_5,p_king_5,p_mitos_5)
 ```
@@ -370,7 +375,8 @@ king_mitos_death <- king_mitos_death %>% mutate(time_from_onset=round(abs(onset_
 
 
 
-# standardised time 계산 & stage가 death인 경우 standardized time이 1이 아닌 경우는 제외 
+# standardised time 계산
+# 사망한상태인 경우 사망시점은 무조건 standardised time이 1이어야 하나 1미만의 수치를 보이는 케이스는 제외함.
 ```{r}
 bmr_death <- bmr_death %>% group_by(SubjectID) %>% 
   mutate(stan_time=time_from_onset/max(time_from_onset)) %>% 
@@ -387,8 +393,11 @@ king_mitos_death <- setdiff(king_mitos_death,temp)
 
 
 
-# standardised median time plot, subject별로 BMR stage내에서 stage변하기 직전의 time from onset으로 standardized time계산
-# BMR stage별 standardized median time plot 
+# standardised time plot, subject별로 BMR stage내에서 stage변하기 직전의 time from onset으로 standardized time계산
+# 예를 들면 time from onset 7,20,30에 stage가 3이고 time from onset 40에 stage가 4이면 stage 3의 median time은 30으로 간주함
+# BMR stage가 증가함에 따라 standardised time이 증가하여 1에 점점 가까워 지는지 분포확인
+# 질병이 진행한다면 점점 사망에 가까워져야 하고 간격이 균일해야  이상적인 분포임.
+# BMR과의 비교를 위해 King,MiToS의 standardised time도 
 ```{r}
 p_bmr_6 <- bmr_death %>% group_by(SubjectID,bmr_stage) %>% 
   filter(feature_delta==max(feature_delta)) %>% 
@@ -416,12 +425,13 @@ p_mitos_6 <- king_mitos_death %>% group_by(SubjectID,mitos) %>%
   labs(x="MiToS stage",y="Standardized median time",fill="MiToS stage")
 ```
 
-# merge 3 plots  
+# BMR stage의 장점을 보기위해 기존의 King, MiToS의 standardised time과도 비교
 ```{r fig.height=10}
 grid.arrange(p_bmr_6,p_king_6,p_mitos_6)
 ```
 
-# 이전시점과 다음 방문 시점의 BMR stage를 비교하여 transition probability table 만듦 
+# bmr_tran: SubjectId별로 grouping하여 이전시점과 다음 방문 시점의 BMR stage를 비교하고 transition probability 계산
+# king_tran, mitos_tran: SubjectId별로 grouping하여 이전시점과 다음 방문 시점의 King's,MiToS stage의 진행확률인 transition probability 계산
 ```{r}
 bmr_tran <- bmr %>% group_by(SubjectID) %>% 
   mutate(bmr_stage_next=lead(bmr_stage)) %>% 
@@ -441,7 +451,7 @@ mitos_tran_mtrx_prop <- prop.table(table(mitos_tran$mitos_stage_next,mitos_tran$
 
 
 
-# transition probability transformation: matrix to dataframe form 
+# confusion matrix plot을 구하기위해 transition probability 데이터 형태를 매트릭스에서 dataframe형태로 변경
 ```{r}
 bmr_tran_mtrx_prop1 <- melt(bmr_tran_mtrx_prop)
 king_tran_mtrx_prop1 <- melt(king_tran_mtrx_prop)
@@ -450,7 +460,7 @@ mitos_tran_mtrx_prop1 <- melt(mitos_tran_mtrx_prop)
 
 
 
-# transition probability plot with confusion matrix form
+# 각 stage system별로 transition probability plot 구함.
 ```{r}
 p_bmr_7 <- bmr_tran_mtrx_prop1 %>% ggplot(aes(x=Var.2,y=Var.1,fill=value))+
   geom_raster()+
@@ -478,7 +488,7 @@ p_mitos_7 <- mitos_tran_mtrx_prop1 %>% ggplot(aes(x=Var.2,y=Var.1,fill=value))+
   theme(panel.grid.major = element_blank(),panel.grid.minor = element_blank())
 ```
 
-# merge 3 plots  
+# BMR stage의 transition probability를 King,MiToS stage system과 비교
 ```{r fig.height=10}
 grid.arrange(p_bmr_7,p_king_7,p_mitos_7)
 ```
