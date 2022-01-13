@@ -378,7 +378,7 @@ king_mitos_death <- king_mitos_death %>% mutate(time_from_onset=round(abs(onset_
 # standardised time 계산
 # 사망한상태인 경우 사망시점은 무조건 standardised time이 1이어야 하나 1미만의 수치를 보이는 케이스는 제외함.
 ```{r}
-bmr_death <- bmr_death %>% group_by(SubjectID) %>% 
+bmr_death <- bmr %>% group_by(SubjectID) %>% 
   mutate(stan_time=time_from_onset/max(time_from_onset)) %>% 
   arrange(SubjectID,feature_delta)
 temp <- bmr_death %>% filter(bmr_stage==7&stan_time<1)
