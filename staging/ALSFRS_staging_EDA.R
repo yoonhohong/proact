@@ -11,8 +11,8 @@ setwd("/Users/hong/Dropbox/ALSmaster/PROACT")
 stage_alsfrs = read.csv("ALSFRS_rev_clinicalStage.csv")
 stage_als = read.csv("ALS_rev_clinicalStage.csv")
 
-length(unique(stage_alsfrs$SubjectID)) # 3059 patients 
-length(unique(stage_als$SubjectID)) # 3059 patients 
+# length(unique(stage_alsfrs$SubjectID)) # 3059 patients 
+# length(unique(stage_als$SubjectID)) # 3059 patients 
 
 # Time from enrollment: King's and MiTos stages
 p1 = ggplot(stage_als, aes(factor(king), feature_delta)) + 
