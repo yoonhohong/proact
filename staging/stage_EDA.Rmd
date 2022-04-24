@@ -1,0 +1,70 @@
+---
+title: "ALS staging; EDA"
+output: html_notebook
+---
+
+```{r}
+library(tidyverse)
+library(broom)
+library(gridExtra)
+```
+
+
+```{r}
+# Read stage dataset 
+stage1 <- read_csv("data/stage_king_mitos.csv")
+stage2 <- read_csv("data/stage_bmr.csv")
+```
+
+```{r}
+stage = stage1 %>%
+  inner_join(stage2, by = c("subjectid", "feature_delta"))
+```
+
+```{r}
+stage = within(stage, {
+  king = factor(king)
+  mitor = factor(mitos)
+  b_stage = factor(b_stage)
+  m_stage = factor(m_stage)
+  r_stage = factor(r_stage)
+  bmr_stage = factor(bmr_stage)
+})
+```
+
+
+
+```{r}
+# read in alsfrs_rev data 
+```
+
+
+```{r}
+# merge alsfrs_rev and stage dataframes 
+```
+
+time taken from symptom onset to reach each stage (last recorded for corresponding stage, every records for corresponding stage)  
+
+standardized time taken to reach each stage (time taken to reach each stage, divided by entire disease duration, ie., from symptom onset to death; 0, symptom onset; 1, death)  
+
+some patients may have stage reversal. 
+
+comparisons btw bulbar onset vs. limb onset.   
+
+effect of riluzole use on time taken to reach each stage  
+
+
+KM curve analysis; from last recorded stage to death or censor date 
+
+
+
+
+
+
+
+
+
+
+
+
+

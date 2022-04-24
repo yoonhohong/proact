@@ -1,0 +1,82 @@
+---
+title: "Characterizing stages"
+output: html_notebook
+---
+
+## Questions    
+
+BMR stage 간에 **disease severity** (ALSFRS-R total scores and domain scores) 에 차이가 있는가? 즉, BMR stage 는 disease severity 측면에서 **discriminative ability** 가 있는가? King's 및 Mitos stage 의 경우엔 어떠한가?   
+
+BMR stage 간에 **disease progression rate** (slope of the ALSFRS-R total scores)에 차이가 있는가? King's 및 Mitos stage 의 경우엔 어떠한가?    
+
+## 데이터 전처리   
+
+**데이터 파일**    
+
+- stage_bmr   
+- stage_king_mitos   
+- alsfrs_rev   
+
+
+```{r message=FALSE}
+library(readr)
+library(tidyverse)
+```
+
+데이터 파일 불러오기   
+```{r message=FALSE}
+bmr = read_csv("data/stage_bmr.csv")
+kmi = read_csv("data/stage_king_mitos.csv")
+alsfrs = read_csv("data/alsfrs_rev.csv")
+```
+
+변수명 통일하기   
+필요한 변수만 골라내기   
+```{r}
+names(alsfrs) = tolower(names(alsfrs))
+alsfrs = alsfrs %>%
+  select(subjectid, feature_delta, alsfrs_r_total, bulbar, motor, respiratory, gastrostomy, r3_respiratory_insufficiency)
+```
+
+alsfrs, bmr, kmi 파일 병합하기   
+먼저 bmr 과 kmi 병합하고, 
+사망 stage 에 해당하는 record 는 제외하기   
+```{r}
+stage = bmr %>%
+  inner_join(kmi, by = c("subjectid", "feature_delta")) %>%
+  filter(bmr_stage < 7)
+```
+
+stage 와 alsfrs 파일 병합하기   
+병합하기 전에 먼저, **사망 시점에 alsfrs 기록**이 있는지 확인하고, 
+해당 레코드는 삭제하기(즉, 사망 stage 로 간주함)    
+```{r}
+temp = bmr %>%
+  filter(bmr_stage == 7) %>%
+  select(subjectid, feature_delta)
+temp2 = alsfrs %>%
+  inner_join(temp, by = c("subjectid", "feature_delta"))
+alsfrs2 = alsfrs %>%
+  anti_join(temp2, by = c("subjectid", "feature_delta"))
+```
+
+stage 와 alsfrs2 간에 record 수가 일치하는지 확인하기 
+```{r}
+dim(stage) == dim(alsfrs2)
+```
+
+stage 와 alsfrs2 병합하기   
+```{r}
+df = stage %>%
+  inner_join(alsfrs2, by = c("subjectid", "feature_delta"))
+head(df)
+```
+
+
+## 탐색적 분석 
+
+
+
+
+
+

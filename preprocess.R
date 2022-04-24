@@ -1,6 +1,4 @@
 # Data preprocessing   
-# Source datasets (see README.md)   
-# Output data files (see README.md)   
 
 # Set working directory 
 setwd("/Users/hong/Dropbox/ALSmaster/PROACT")
@@ -22,7 +20,7 @@ data.all <- rbind(data.allforms_training,data.allforms_training2,data.allforms_l
 length(unique(data.all$SubjectID)) # 10723 patients 
 dim(data.all) # 4,456,146 records 
 
-## Data type conversion; feature_delta (days to months)   
+## Data type conversion; feature_delta (days to months)
 data.all <- within(data.all, {
   SubjectID = as.character(SubjectID)
   feature_delta = round((as.numeric(feature_delta)/365)*12, 2)
@@ -133,10 +131,17 @@ alsfrs_rev_wide = alsfrs_rev_wide[c(1:3,5:16,4,19,17,18)]
 write.csv(alsfrs_rev_wide, "ALSFRS_rev.csv",
           row.names = F, quote = F)
 
+alsfrs_rev_3mo = alsfrs_rev_wide %>%
+  filter(feature_delta <= 3)
+length(unique(alsfrs_rev_3mo$SubjectID)) # 3058 patients (1 of 3059 excluded)
+alsfrs_rev_wide = alsfrs_rev_wide %>%
+  filter(SubjectID %in% alsfrs_rev_3mo$SubjectID)
+length(unique(alsfrs_rev_wide$SubjectID)) # 3058 patients 
 
 # Target event dataset 
 tg = alsfrs_rev_wide %>%
   select(SubjectID, feature_delta, Q3_Swallowing)
+length(unique(tg$SubjectID))
 
 # Patients with fu duration <= 3 mo (group I)
 temp = tg %>%
@@ -153,12 +158,14 @@ temp2 = tg %>%
   # if event occurred, it should be after 3 mo 
 dim(temp2) # 104 patients 
 
+length(unique(union(temp$SubjectID, temp2$SubjectID))) # 388 patients 
+
 # Exclude the above group I and II patients 
 tg2 = tg %>%
   anti_join(temp, by = "SubjectID") %>%
   anti_join(temp2, by = "SubjectID")
 
-length(unique(tg2$SubjectID)) # 2671 patients 
+length(unique(tg2$SubjectID)) # 2670 patients 
 
 # target event dataset 
 # event occurred 
@@ -176,17 +183,13 @@ tg_censored = tg2 %>%
   summarise(feature_delta = max(feature_delta)) %>%
   mutate(feature_delta = feature_delta - 3) %>%
   mutate(event = 0)
-dim(tg_censored) # 2094 patients 
+dim(tg_censored) # 2093 patients 
 
 tg_fin = rbind(tg_event, tg_censored)
 write.csv(tg_fin, "LOA_swallowing.csv", quote = F, row.names = F)
 
 # Calculate meta-features of ALSFRS rev from records for the first 3 months: mean and slope 
 # Select records for the first 3 months
-alsfrs_rev_3mo = alsfrs_rev_wide %>%
-  filter(feature_delta <= 3)
-length(unique(alsfrs_rev_3mo$SubjectID)) # 3058 patients (1 of 3059 excluded)
-
 alsfrs_rev_3mo_aggr = alsfrs_rev_3mo %>%
   group_by(SubjectID) %>%
   summarise(n=n(),

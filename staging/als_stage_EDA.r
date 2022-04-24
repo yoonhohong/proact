@@ -4,12 +4,14 @@ library(tidyverse)
 library(broom)
 library(gridExtra)
 
-# Set working directory 
-setwd("/Users/hong/Dropbox/ALSmaster/PROACT")
-
 # Read ALSFRS stage dataset 
-stage_alsfrs = read.csv("ALSFRS_rev_clinicalStage.csv")
-stage_als = read.csv("ALS_rev_clinicalStage.csv")
+stage_king_mitos <- read_csv("data/als_rev_stage_king_mitos.csv")
+names(stage_king_mitos) = tolower(names(stage_king_mitos))
+
+stage_bmr = read_csv("data/stage_bmr.csv")
+
+stage_all = stage_king_motos %>%
+  inner_join(stage_bmr, by = c("subjectid", "feature_delta"))
 
 # Time from enrollment: King's and MiTos stages
 p1 = ggplot(stage_als, aes(factor(king), feature_delta)) + 

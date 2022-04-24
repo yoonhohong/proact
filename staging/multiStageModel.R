@@ -1,8 +1,8 @@
-
-# Set working directory 
+# install package: msm 
+# set working directory 
 setwd("/Users/hong/Dropbox/ALSmaster/PROACT")
 
-# Read ALSFRS stage dataset 
+# read ALSFRS stage dataset 
 stage = read.csv("ALSFRS_stage.csv")
 stage = within(stage, {
   king = factor(king)
