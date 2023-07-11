@@ -10,17 +10,19 @@ library(broom)
 library(purrr)
 
 # Import source datasets: training1, training2, leaderboard, validation 
-data.allforms_training<-read.delim("all_forms_PROACT_training.txt",sep="|", header=T)
-data.allforms_training2<-read.delim("all_forms_PROACT_training2.txt",sep="|", header=T)
-data.allforms_leaderboard<-read.delim("all_forms_PROACT_leaderboard_full.txt",sep="|", header=T)
-data.allforms_validation<-read.delim("all_forms_PROACT_validation_full.txt",sep="|", header=T)
+data.allforms_training<-read.delim("PROACT_rawdata/all_forms_PROACT_training.txt",sep="|", header=T)
+data.allforms_training2<-read.delim("PROACT_rawdata/all_forms_PROACT_training2.txt",sep="|", header=T)
+data.allforms_leaderboard<-read.delim("PROACT_rawdata/all_forms_PROACT_leaderboard_full.txt",sep="|", header=T)
+data.allforms_validation<-read.delim("PROACT_rawdata/all_forms_PROACT_validation_full.txt",sep="|", header=T)
 
 # Combine datasets  
 data.all <- rbind(data.allforms_training,data.allforms_training2,data.allforms_leaderboard,data.allforms_validation)
 length(unique(data.all$SubjectID)) # 10723 patients 
 dim(data.all) # 4,456,146 records 
 
-## Data type conversion; feature_delta (days to months)
+# Preprocess 1 
+
+## Data type and time unit conversion; feature_delta (days -> months)
 data.all <- within(data.all, {
   SubjectID = as.character(SubjectID)
   feature_delta = round((as.numeric(feature_delta)/365)*12, 2)
@@ -28,25 +30,47 @@ data.all <- within(data.all, {
 })
 ## Exclude exact duplicates 
 data.all = distinct(data.all)
-dim(data.all) # 4,417,730 records 
+dim(data.all) # 4,417,730 records (excluding 38,416 records)
 
 ## Exclude inconsistent values: records with the same SubjectID, form_name, feature_name, feature_unit and feature_delta, but different feature_value 
 temp = data.all %>%
   count(SubjectID, form_name, feature_name, feature_unit, feature_delta) %>%
+  filter(n > 1)
+sum(temp$n) # 116,641 records 
+
+temp = data.all %>%
+  count(SubjectID, form_name, feature_name, feature_unit, feature_delta) %>%
   filter(n == 1) %>%
   select(-n)
+dim(temp) # 4,301,089 records 
 
-data.all = data.all %>%
+temp2 = data.all %>%
   inner_join(temp, by = c("SubjectID","form_name","feature_name","feature_unit","feature_delta"))
 
 ## Exclude records with feature_delta < 0 
-data.all = data.all %>%
+dim(temp2) # 4,301,089 records 
+temp3 = temp2 %>%
+  filter(feature_delta < 0)
+dim(temp3) # 39,827 records 
+
+temp4 = temp2 %>%
+  filter(is.na(feature_delta)) 
+
+temp5 = temp2 %>%
   filter(feature_delta >= 0)
 
-# Exclude patients with neither none or incomplete demographic information 
+temp6 = rbind(temp4, temp5)
+dim(temp6) # 4,261,262 records 
+
+data.all = temp6
+length(unique(data.all$SubjectID))
+dim(data.all)
+
+## Exclude patients with neither none or incomplete demographic information 
 demographic = data.all %>% 
   filter(form_name == "Demographic") %>% 
   select(SubjectID, feature_name, feature_value)
+length(unique(demographic$SubjectID)) # 8653 patients 
 demographic = spread(demographic, feature_name, feature_value) 
 demographic = within(demographic, {
   Age = round(as.numeric(Age))
@@ -57,15 +81,18 @@ demographic = demographic[complete.cases(demographic),]
 length(unique(demographic$SubjectID)) # 8646 patients 
 data.all_1 = data.all %>%
   filter(SubjectID %in% demographic$SubjectID)
+dim(data.all_1) # 4,238,298
 
-# Exclude patients with neither none or incomplete alshx data: onset_delta, diag_delta, onset_site
+## Exclude patients with neither none or incomplete alshx data: onset_delta, diag_delta, onset_site
 alshx = data.all_1 %>% 
   filter(form_name == "ALSHX") %>% 
   select(SubjectID, feature_name, feature_value) 
+length(unique(alshx$SubjectID)) # 7,227 patients 
 alshx = spread(alshx, feature_name, feature_value)
 alshx = alshx[complete.cases(alshx),]
+length(unique(alshx$SubjectID)) # 4,457 patients 
 
-# Exclude records with errorneous diag_delta or onset_delta values 
+## Exclude records with errorneous diag_delta or onset_delta values 
 alshx = within(alshx, {
   diag_delta = as.numeric(as.character(diag_delta))
   onset_delta = as.numeric(as.character(onset_delta))
@@ -79,17 +106,18 @@ alshx = within(alshx, {
   onset_delta = -round((onset_delta/365)*12,2)
   onset2dx = onset_delta - diag_delta
 })
-# Exclude records with onset2dx < 0  
+## Exclude records with onset2dx < 0  
 alshx = alshx %>%
   filter(onset2dx >= 0)
-# Factor collapse 
+## onset_site: factor collapse 
 alshx$onset_site = fct_collapse(alshx$onset_site, Nonbulbar = c("Limb","Limb and Bulbar","Other"))
 length(unique(alshx$SubjectID)) # 4442 patients 
 
 data.all_2 = data.all_1 %>%
   filter(SubjectID %in% alshx$SubjectID)
+dim(data.all_2)
 
-# ALSFRS
+## ALSFRS
 alsfrs <- data.all_2 %>%
   filter(form_name=="ALSFRS") %>%
   select(-c(form_name,feature_unit))
@@ -97,6 +125,7 @@ alsfrs <- data.all_2 %>%
 alsfrs$feature_value <- as.numeric(alsfrs$feature_value)
 alsfrs$feature_name = factor(alsfrs$feature_name)
 ## Convert long to wide format 
+length(unique(alsfrs$SubjectID)) # 4082 patients 
 alsfrs_wide <- spread(alsfrs,feature_name,feature_value)
 dim(alsfrs_wide) # 37022 records 
 length(unique(alsfrs_wide$SubjectID)) # 4082 patients 
@@ -116,20 +145,33 @@ temp4 = temp3 %>%
   mutate(Gastrostomy = ifelse(is.na(Q5b_Cutting_with_Gastrostomy), F, T)) %>%
   select(-c(Q5a_Cutting_without_Gastrostomy, Q5b_Cutting_with_Gastrostomy))
 alsfrs_wide = temp4
+length(unique(alsfrs_wide$SubjectID)) # 4082 patients 
 
-# ALSFRS records 
-# ALSFRS rev 
+## ALSFRS records 
+## ALSFRS rev 
 temp = alsfrs_wide %>%
   select(-c(ALSFRS_Total, 
             Q10_Respiratory, respiratory)) %>%
   mutate(motor = hands + leg + trunk) %>%
   rename(bulbar = mouth, respiratory = respiratory_R) %>%
   select(-c(hands, leg, trunk))
+dim(temp) # 37,008 records, 4082 patients 
+
 alsfrs_rev_wide = temp[complete.cases(temp),] 
+dim(alsfrs_rev_wide) # 28,059 records 
 length(unique(alsfrs_rev_wide$SubjectID)) # 3,059 patients 
 alsfrs_rev_wide = alsfrs_rev_wide[c(1:3,5:16,4,19,17,18)]
-write.csv(alsfrs_rev_wide, "ALSFRS_rev.csv",
+write.csv(alsfrs_rev_wide, "PROACT_preprocessed/ALSFRS_rev.csv",
           row.names = F, quote = F)
+
+
+# Preprocess 2 
+data.all_3 = data.all_2 %>%
+  filter(SubjectID %in% alsfrs_rev_wide$SubjectID)
+dim(data.all_3) # 1,970,311 records 
+
+
+
 
 alsfrs_rev_3mo = alsfrs_rev_wide %>%
   filter(feature_delta <= 3)
@@ -137,6 +179,7 @@ length(unique(alsfrs_rev_3mo$SubjectID)) # 3058 patients (1 of 3059 excluded)
 alsfrs_rev_wide = alsfrs_rev_wide %>%
   filter(SubjectID %in% alsfrs_rev_3mo$SubjectID)
 length(unique(alsfrs_rev_wide$SubjectID)) # 3058 patients 
+
 
 # Target event dataset 
 tg = alsfrs_rev_wide %>%
