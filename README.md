@@ -1,6 +1,6 @@
 # Goals  
 
-- To develop a personalized prediction model for the loss of autonomy in swallowing function in ALS   
+To preprocess PROACT dataset     
 
 **Target variables**    
 
