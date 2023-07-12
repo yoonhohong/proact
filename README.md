@@ -2,7 +2,7 @@
 To preprocess PROACT dataset     
 
 **Data files** 
-You can find out the data files at the following url.    
+You can find the data files at the following url.    
 https://www.dropbox.com/sh/3lmi5ii3sgyi7o3/AACeVLTGtSDXSKIaX6P7Hxj2a?dl=0  
 
 or in the following folders.       

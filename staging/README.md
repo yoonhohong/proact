@@ -1,16 +1,30 @@
-# 데이터 폴더 안 파일 설명 
+# Workflow 
 
-## data files 
-- ALSFRS_rev.csv
+## Data & Script files
+
+Data files in the following folder.    
+Dropbox/ALSmaster/PROACT/PROACT_preprocessed    
+
+Data files 
+- ALSFRS_rev.csv   
 - survival.csv
 - stage_king_mitos.csv
 - stage_bmr.csv 
 - PROACT_preprocessed_rev.csv
 
-## 각 파일의 fiels 설명   
+Script files in the following github repository   
+https://github.com/yoonhohong/PROACT (cloned in Macbook pro at ~/Githubrepos/PROACT)   
 
-**ALSFRS_rev** 
+Script files (output -> data files)
+- preprocess.R (-> ALSFRS_rev.csv)
+- staging/survival_target.R (-> survival.csv)    
+- staging/estimate_king_mitos_alsfrs.R (-> stage_king_mitos.csv). 
 
+- 
+
+## 각 데이터 파일의 변수 설명   
+
+**ALSFRS_rev.csv** 
 SubjectID - 환자 고유 ID 
 feature_delta - 임상시험 등록으로부터 경과 시간(월 단위로 환산된) *
 ALSFRS_R_Total - ALS functional rating scale revised version total score (아래 Q1 - Q9, R1,2,3 를 모두 합친 값)
@@ -35,42 +49,42 @@ respiratory - sum(R1:R3) (or equal to Q10 in case of ALSFRS_orig.csv)
 
 [ALSFRS revised version](https://www.encals.eu/wp-content/uploads/2016/09/ALS-Functional-Rating-Scale-Revised-fill-in-form.pdf)
 
-**survival**  
-
+**survival.csv**  
 SubjectID - 환자 고유 ID 
 time_event - 임상시험 등록으로부터 사망 혹은 추적 관찰 종류까지 경과 시간(월 단위로 환산함) 
 status - 종료 시 상태 (0: censoring, 1: death)  
 
 
-## HMM model   
-hidden state: disease stages      
-observable states: ALSFRS_rev scores (item scores or dimension scores)      
+## HMM disease staging    
 
-**why not total scores?**   
-dimensionality analysis argues against the use of ALSFRS-R as a single score because the scale lacks unidimensionality.   
+Hidden Markov Model (HMM). 
+
+Hidden states: disease stages       
+Observable states: ALSFRS_rev dimension scores (bulbar, motor, respiratory) 
+
+**Why not using total scores?**   
+The results of dimensionality analysis argued against the use of ALSFRS-R total score as a single score because the scale lacks unidimensionality.   
 https://pubmed.ncbi.nlm.nih.gov/23516308/    
 
-**strategy for aggregating items for dimension scores**     
-based on the results of exploratory factor analysis, which represent 3 domains as followings:    
-(1) bulbar function (Q1_Speech, Q2_Salivation, Q3_Swallowing);    
-(2) fine and gross motor function (Q4_Handwriting, Q5a_Cutting_without_Gastrostomy/Q5b_Cutting_with_Gastrostomy, Q6_Dressing_and_Hygiene, Q7_Turning_in_Bed, Q8_Walking, Q9_Climbing_Stairs); and  
-(3) respiratory function (Q10_Respiratory).    
+**Strategy for aggregating items for dimension scores**     
+Based on the results of exploratory factor analysis, we use 3 domains as followings:    
+(1) Bulbar function (Q1_Speech, Q2_Salivation, Q3_Swallowing);    
+(2) Motor function - fine and gross motor (Q4_Handwriting, Q5a_Cutting, Q6_Dressing_and_Hygiene, Q7_Turning_in_Bed, Q8_Walking, Q9_Climbing_Stairs); and  
+(3) Respiratory function (R1, R2, R3).    
 
-we also need to consider the followings...   
-collapsing the scale's 5 level ratings into 3 levels improved its metric quality       
+**Collapsing 5 level ratings into 3 levels**
+Collapsing the scale's 5 level ratings into 3 levels improved its metric quality       
 
-estimate ALSFRS-R score into clinical stage, and use this to construct the initial transition probability matrix for HMM.   
-there are two clinical staging systems, e.g., King's staging and the MiTOS staging    
- 
-King's staging is based on the number of **neuroanatomical regions** involved (bulbar, cervical, lumbosacral) and the need for gastrostomy and non-invasive ventilation.    
-MiTOS staging is based on the number of **functional domains** where the patient lose autonomy (swallowing, communication, movement, breathing)    
-**references**        
-Estimating clinical stage of amyotrophic lateral sclerosis from the ALS Functional Rating Scale https://pubmed.ncbi.nlm.nih.gov/24720420/    
+**Estimating clinical stages (King's and MiToS) from ALSFRS-R item scores**.    
+Estimate clinical stages from ALSFRS-R scores, and use this to construct the initial transition probability matrix for HMM.   
+
+King's staging is based on the number of *neuroanatomical regions* involved (bulbar, cervical, lumbosacral) and the need for gastrostomy and non-invasive ventilation.    
+
+MiToS staging is based on the number of **functional domains** where the patient lose autonomy (swallowing, communication, movement, breathing)    
+
+**References**        
+Estimating clinical stage of ALS from the ALS Functional Rating Scale https://pubmed.ncbi.nlm.nih.gov/24720420/    
 Clinical staging in amyotrophic lateral sclerosis: analysis of Edaravone Study 19 https://jnnp.bmj.com/content/92/2/165    
-
-
-specific questions to be addressed      
-- comparison of HMM stages with King's and the Mito's stages    
 
 
 

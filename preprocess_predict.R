@@ -171,8 +171,6 @@ data.all_3 = data.all_2 %>%
 dim(data.all_3) # 1,970,311 records 
 
 
-
-
 alsfrs_rev_3mo = alsfrs_rev_wide %>%
   filter(feature_delta <= 3)
 length(unique(alsfrs_rev_3mo$SubjectID)) # 3058 patients (1 of 3059 excluded)

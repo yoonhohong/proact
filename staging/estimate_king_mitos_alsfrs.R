@@ -1,32 +1,22 @@
----
-title: "Estimate King's and MiTos Stages with ALSFRS revised scores"
-output: html_notebook
----
+# Estimate clinical stages (King's and MiTos) with ALS functional rating scale revised
 
-## Objectives
-to estimate clinical stage, i.e., king's stage and mitos stage, using alsfrs  scores
+# Reference
 
-## Reference
-Rubika Balendra (2014) Estimating clinical stage of amyotrophic lateral sclerosis from the ALS Functional Rating Scale, Amyotrophic Lateral Sclerosis and Frontotemporal Degeneration, 15:3-4, 279-284, DOI: 10.3109/21678421.2014.897357   
-Chiò A, Hammond ER, Mora G, et al. J Neurol Neurosurg Psychiatry 2015;86:38–44.  
+# Rubika Balendra (2014) Estimating clinical stage of amyotrophic lateral sclerosis from the ALS Functional Rating Scale, Amyotrophic Lateral Sclerosis and Frontotemporal Degeneration, 15:3-4, 279-284, DOI: 10.3109/21678421.2014.897357   
 
-```{r}
+# Chiò A, Hammond ER, Mora G, et al. J Neurol Neurosurg Psychiatry 2015;86:38–44.  
+
 library(tidyverse)
-```
+setwd("/Users/hong/Dropbox/ALSmaster/PROACT") 
 
 
-```{r}
 # read-in ALSFRS_rev data
-alsfrs <- read.csv("data/ALSFRS_rev.csv")
+alsfrs <- read.csv("PROACT_preprocessed/ALSFRS_rev.csv")
 names(alsfrs) = tolower(names(alsfrs))
-```
 
+# King's staging   
+# Patients who have undergone gastrostomy or are on NIV are classified as stage 4, and those who are not stage 4 are assigned stage 1-3 based on the number of bulbar, upper, and lower extremities involved. 
 
-## King's staging   
-gastrostomy를 받은 환자나 NIV를 사용하는 환자는 stage4로 따로 분류하고,  
-stage 4가 아닌 환자 중 bulbar, 상지, 하지 중 involve 된 개수로 stage 1~3 부여 
-
-```{r}
 stage_king = alsfrs %>%
   mutate(bulbar_involved = ifelse(bulbar < 12, 1, 0), 
          upperlimb_involved = ifelse((q4_handwriting + q5_cutting) < 8, 1, 0), 
@@ -34,36 +24,34 @@ stage_king = alsfrs %>%
   mutate(king = bulbar_involved + upperlimb_involved + lowerlimb_involved) %>%
   mutate(king = case_when(
     (gastrostomy == T)|(r1_dyspnea == 0|r3_respiratory_insufficiency < 4) ~ 4, 
-                          TRUE ~ king)) %>% 
+    TRUE ~ king)) %>% 
   select(subjectid, feature_delta, king)
-```
 
-```{r}
 stage_king %>%
   count(king) %>%
   mutate(prop = round(n/sum(n)*100, 2))
-```
 
-stage = 0 in 119 observations, why?  
-- trunk (Q6, Q7) or leg involved in climbing stairs (Q9) but not in walking (Q8) 
-- respiration involved (Q10) to such an extent that does not require NIV   
+# stage = 0 in 119 observations, why?  
+# trunk (Q6, Q7) involved or 
+# leg involved in climbing stairs (Q9) but not in walking (Q8) or.  
+# respiration involved (Q10) to such an extent that does not require NIV   
 
-```{r}
 # replace stage 0 with stage 1 
 stage_king$king = ifelse(stage_king$king == 0, 1, stage_king$king)
-```
 
-```{r}
 stage_king = within(stage_king, {
   king = factor(king)
   subjectid = as.character(subjectid)
 })
 summary(stage_king)
-```
 
-## mitos staging
+stage_king %>%
+  count(king) %>%
+  mutate(prop = round(n/sum(n)*100, 1))
 
-```{r}
+
+# MiToS staging
+
 stage_mitos = alsfrs %>%
   mutate(swallowing = ifelse(q3_swallowing <= 1, 1, 0)) %>%
   mutate(breathing = ifelse(r1_dyspnea <= 1|r3_respiratory_insufficiency <= 2, 1, 0)) %>%
@@ -73,96 +61,85 @@ stage_mitos = alsfrs %>%
                              q8_walking <=1, 1, 0)) %>%
   mutate(mitos = swallowing + breathing + communicating + movement) %>%
   select(subjectid, feature_delta, mitos)
-```
 
-
-```{r}
-stage_mitos %>%
-  count(mitos) %>%
-  mutate(prop = round(n/sum(n)*100, 2))
-```
-
-```{r}
 stage_mitos = within(stage_mitos, {
   subjectid = as.character(subjectid)
   mitos = factor(mitos)
 })
 summary(stage_mitos)
-```
 
+stage_mitos %>%
+  count(mitos) %>%
+  mutate(prop = round(n/sum(n)*100, 1))
 
-```{r}
 # merge king and mitos stages 
 stage_merged = stage_king %>%
   inner_join(stage_mitos, by = c("subjectid", "feature_delta"))
-```
+dim(stage_merged) # 28,059 records 
+length(unique(stage_merged$subjectid)) # 3,059 patients 
 
 
-## merge with survival data 
-death = stage 5 in Mitos and King's staging system  
+# merge with survival data 
+# death = stage 5 in MiToS and King's staging system  
 
-```{r}
-surv = read_csv('data/survival.csv')
+surv = read_csv('PROACT_preprocessed/survival.csv')
 names(surv) = tolower(names(surv))
-```
+dim(surv)
+length(unique(surv$subjectid)) # 9080 patients 
 
-```{r}
 deceased = surv %>%
   filter(status == 1) %>%
-  filter(subjectid %in% stage_merged$subjectid)
-```
-
-```{r}
-deceased = deceased %>%
+  filter(subjectid %in% stage_merged$subjectid) %>%
   rename(feature_delta = time_event) %>%
   mutate(king = 5, mitos = 5) %>%
   mutate(subjectid = as.character(subjectid), 
          king = factor(king),
          mitos = factor(mitos)) %>%
   select(subjectid, feature_delta, king, mitos)
-```
 
-
-
-```{r}
 stage_final = bind_rows(stage_merged, deceased)
 summary(stage_final)
-```
 
-In some patients, the time of death coincided with the time of alsfrs recording.  
-```{r}
+# In some patients (turned out to be 4), death coincided with the time of ALSFRS record (8 records) -> exclude these records.   
 stage_final %>%
   group_by(subjectid, feature_delta) %>%
   count() %>%
   filter(n > 1) -> temp
-temp$subjectid -> ids 
-temp$feature_delta -> deltas
-```
 
-
-```{r}
 stage_final %>%
-  filter(subjectid %in% ids) %>%
-  filter(feature_delta %in% deltas)
-```
-
-```{r}
-temp = stage_final %>%
-  filter(subjectid %in% ids) %>%
-  filter(feature_delta %in% deltas) %>%
-  filter(!(king == 5))
-```
-
-```{r}
+  inner_join(temp, by = c("subjectid", "feature_delta")) %>%
+  arrange(subjectid) -> temp2
+  
 stage = stage_final %>%
-  anti_join(temp, by=c("subjectid","feature_delta","king","mitos"))
-```
+  anti_join(temp2, by=c("subjectid","feature_delta","king","mitos"))
+
+length(unique(stage$subjectid)) # 3059 patients 
+dim(stage) # 28,741 records 
+
+write_csv(stage, "PROACT_preprocessed/stage_king_mitos.csv")
 
 
-```{r}
-write_csv(stage, "data/stage_king_mitos.csv")
-```
 
-*The End*   
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
