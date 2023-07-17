@@ -1,26 +1,24 @@
 # Data preprocessing   
 
 # Set working directory 
-setwd("/Users/hong/Dropbox/ALSmaster/PROACT")
+setwd("~/Dropbox/Github/proact")
 
 # Load packages
 library(tidyverse)
-library(survival)
 library(broom)
-library(purrr)
 
 # Import source datasets: training1, training2, leaderboard, validation 
-data.allforms_training<-read.delim("PROACT_rawdata/all_forms_PROACT_training.txt",sep="|", header=T)
-data.allforms_training2<-read.delim("PROACT_rawdata/all_forms_PROACT_training2.txt",sep="|", header=T)
-data.allforms_leaderboard<-read.delim("PROACT_rawdata/all_forms_PROACT_leaderboard_full.txt",sep="|", header=T)
-data.allforms_validation<-read.delim("PROACT_rawdata/all_forms_PROACT_validation_full.txt",sep="|", header=T)
+data.allforms_training<-read.delim("~/Dropbox/ALSmaster/PROACT_data/PROACT_rawdata/all_forms_PROACT_training.txt",sep="|", header=T)
+data.allforms_training2<-read.delim("~/Dropbox/ALSmaster/PROACT_data/PROACT_rawdata/all_forms_PROACT_training2.txt",sep="|", header=T)
+data.allforms_leaderboard<-read.delim("~/Dropbox/ALSmaster/PROACT_data/PROACT_rawdata/all_forms_PROACT_leaderboard_full.txt",sep="|", header=T)
+data.allforms_validation<-read.delim("~/Dropbox/ALSmaster/PROACT_data/PROACT_rawdata/all_forms_PROACT_validation_full.txt",sep="|", header=T)
 
 # Combine datasets  
 data.all <- rbind(data.allforms_training,data.allforms_training2,data.allforms_leaderboard,data.allforms_validation)
 length(unique(data.all$SubjectID)) # 10723 patients 
 dim(data.all) # 4,456,146 records 
 
-# Preprocess 1 
+# Preprocess 1 (for prediction & staging projects both)
 
 ## Data type and time unit conversion; feature_delta (days -> months)
 data.all <- within(data.all, {
@@ -64,7 +62,6 @@ dim(temp6) # 4,261,262 records
 
 data.all = temp6
 length(unique(data.all$SubjectID))
-dim(data.all)
 
 ## Exclude patients with neither none or incomplete demographic information 
 demographic = data.all %>% 
@@ -161,35 +158,31 @@ alsfrs_rev_wide = temp[complete.cases(temp),]
 dim(alsfrs_rev_wide) # 28,059 records 
 length(unique(alsfrs_rev_wide$SubjectID)) # 3,059 patients 
 alsfrs_rev_wide = alsfrs_rev_wide[c(1:3,5:16,4,19,17,18)]
-write.csv(alsfrs_rev_wide, "PROACT_preprocessed/ALSFRS_rev.csv",
-          row.names = F, quote = F)
+#write.csv(alsfrs_rev_wide, "PROACT_preprocessed/ALSFRS_rev.csv", row.names = F, quote = F)
 
 
-# Preprocess 2 
+# Preprocess 2 for prediction 
+
 data.all_3 = data.all_2 %>%
   filter(SubjectID %in% alsfrs_rev_wide$SubjectID)
 dim(data.all_3) # 1,970,311 records 
 
-
+## ALSFRS for the first 3 months 
 alsfrs_rev_3mo = alsfrs_rev_wide %>%
   filter(feature_delta <= 3)
 length(unique(alsfrs_rev_3mo$SubjectID)) # 3058 patients (1 of 3059 excluded)
-alsfrs_rev_wide = alsfrs_rev_wide %>%
-  filter(SubjectID %in% alsfrs_rev_3mo$SubjectID)
-length(unique(alsfrs_rev_wide$SubjectID)) # 3058 patients 
-
+length(unique(alsfrs_rev_wide$SubjectID)) # 3059 patients 
 
 # Target event dataset 
 tg = alsfrs_rev_wide %>%
   select(SubjectID, feature_delta, Q3_Swallowing)
-length(unique(tg$SubjectID))
 
 # Patients with fu duration <= 3 mo (group I)
 temp = tg %>%
   group_by(SubjectID) %>%
   summarise(last_delta = max(feature_delta)) %>%
   filter(last_delta <= 3)
-dim(temp) # 299 patients (fu should be longer than 3 mo)
+dim(temp) # 299 patients (fu duration not greater than 3 mo)
 # Patients in whom event occurred at or before 3 mo (group II)
 temp2 = tg %>%
   filter(Q3_Swallowing <= 1) %>%
@@ -206,7 +199,7 @@ tg2 = tg %>%
   anti_join(temp, by = "SubjectID") %>%
   anti_join(temp2, by = "SubjectID")
 
-length(unique(tg2$SubjectID)) # 2670 patients 
+length(unique(tg2$SubjectID)) # 2671 patients 
 
 # target event dataset 
 # event occurred 
@@ -224,19 +217,19 @@ tg_censored = tg2 %>%
   summarise(feature_delta = max(feature_delta)) %>%
   mutate(feature_delta = feature_delta - 3) %>%
   mutate(event = 0)
-dim(tg_censored) # 2093 patients 
+dim(tg_censored) # 2094 patients 
 
 tg_fin = rbind(tg_event, tg_censored)
-write.csv(tg_fin, "LOA_swallowing.csv", quote = F, row.names = F)
+write.csv(tg_fin, "~/Dropbox/ALSmaster/PROACT_data/PROACT_preprocessed/LOA_swallowing.csv", quote = F, row.names = F)
 
 # Calculate meta-features of ALSFRS rev from records for the first 3 months: mean and slope 
 # Select records for the first 3 months
 alsfrs_rev_3mo_aggr = alsfrs_rev_3mo %>%
   group_by(SubjectID) %>%
   summarise(n=n(),
-            first = first(feature_delta), 
-            last = last(feature_delta), 
-            interval = last(feature_delta) - first(feature_delta),
+            first = min(feature_delta), 
+            last = max(feature_delta), 
+            interval = max(feature_delta) - min(feature_delta),
             Gastrostomy = ifelse(any(Gastrostomy == T), T, F),
             # Gastrostomy == T if patients underwent gastrostomy during the first 3 mo 
             ALSFRS_Total = mean(ALSFRS_R_Total), 
@@ -255,7 +248,7 @@ alsfrs_rev_3mo_aggr = alsfrs_rev_3mo %>%
 
 # Estimate ALSFRS total score slope with linear regression   
 temp2_rev = alsfrs_rev_3mo_aggr %>%
-  filter(interval >= 1.5) # select subjects with interval >= 1.5 mo
+  filter(interval >= 1.5) # select subjects with first-last interval >= 1.5 mo
 temp3_rev = alsfrs_rev_3mo %>%
   filter(SubjectID %in% temp2_rev$SubjectID)
 coef_model_total_rev = temp3_rev %>%
@@ -333,13 +326,12 @@ fvc_3mo_aggr = fvc_3mo %>%
   arrange(feature_delta) %>%
   summarise(fvc = mean(feature_value), 
             n=n(),
-            first = first(feature_delta), 
-            last = last(feature_delta), 
+            first = min(feature_delta), 
+            last = max(feature_delta), 
             interval = last(feature_delta) - first(feature_delta))
 temp2 = fvc_3mo_aggr %>%
   filter(interval >= 1.5) # select subjects with interval >= 1.5 mo
 length(unique(temp2$SubjectID)) # 2289 patients 
-length(unique(temp2$SubjectID))/length(unique(fvc_3mo$SubjectID)) # 67%
 temp3 = fvc_3mo %>%
   filter(SubjectID %in% temp2$SubjectID) 
 coef_fvc = temp3 %>% # Apply linear regression by SubjectID
@@ -403,8 +395,8 @@ vitalsign = vitals %>%
            c("bp_systolic", "bp_diastolic", "pulse", 
              "respiratory_rate", "temperature"))
 vitalsign_wide = spread(vitalsign, key = feature_name, value = feature_value)
-dim(vitalsign_wide) # 31941 records 
-length(unique(vitalsign_wide$SubjectID)) # 3622 patients 
+dim(vitalsign_wide) # 31960 records 
+length(unique(vitalsign_wide$SubjectID)) # 3623 patients 
 
 temp = vitalsign_wide %>% 
   rename(dbp = bp_diastolic, 
@@ -452,8 +444,8 @@ lab_sub = lab %>%
              "Urine Creatinine Clearance"
            ))
 lab_wide = spread(lab_sub, feature_name, feature_value)
-length(unique(lab_wide$SubjectID)) # 3792 patients 
-dim(lab_wide) # 32557 records 
+length(unique(lab_wide$SubjectID)) # 3793 patients 
+dim(lab_wide) # 32561 records 
 
 # Calculate mean 
 lab_aggr = lab_sub %>%
@@ -467,9 +459,10 @@ lab_3mo_aggr = spread(lab_aggr, key = feature_name, value = mean)
 dim(lab_3mo_aggr) # 3781 patients
 
 # merge datasets 
-merged_rev = demographic %>%
+merge_data = demographic %>%
   inner_join(alshx, by = "SubjectID") %>% 
-  inner_join(alsfrs_rev_3mo_aggr_slope, by = "SubjectID") %>%
+  filter(SubjectID %in% alsfrs_rev_wide$SubjectID) %>%
+  left_join(alsfrs_rev_3mo_aggr_slope, by = "SubjectID") %>%
   left_join(fvc_3mo_aggr_slope, by = "SubjectID") %>%
   left_join(famhx, by = "SubjectID") %>%
   left_join(riluzole, by = "SubjectID") %>%
@@ -477,6 +470,9 @@ merged_rev = demographic %>%
   left_join(vitalsign_3mo_aggr, by = "SubjectID") %>%
   left_join(lab_3mo_aggr, by = "SubjectID")
 
-write.csv(merged_rev, "PROACT_preprocessed_rev.csv", quote = F, row.names = F)
+dim(merge_data)
+length(unique(merge_data$SubjectID))
+
+write.csv(merge_data, "~/Dropbox/ALSmaster/PROACT_data/PROACT_preprocessed/PROACT_features_predict.csv", quote = F, row.names = F)
 
 # The End # 

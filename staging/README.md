@@ -2,25 +2,20 @@
 
 ## Data & Script files
 
-Data files in the following folder.    
-Dropbox/ALSmaster/PROACT/PROACT_preprocessed    
+Data files               
+~/Dropbox/ALSmaster/PROACT/PROACT_preprocessed    
 
-Data files 
-- ALSFRS_rev.csv   
-- survival.csv
-- stage_king_mitos.csv
-- stage_bmr.csv 
-- PROACT_preprocessed_rev.csv
+Script files            
+https://github.com/yoonhohong/proact  
+- ~/Dropbox/Github/proact  
 
-Script files in the following github repository   
-https://github.com/yoonhohong/PROACT (cloned in Macbook pro at ~/Githubrepos/PROACT)   
-
-Script files (output -> data files)
-- preprocess.R (-> ALSFRS_rev.csv)
-- staging/survival_target.R (-> survival.csv)    
-- staging/estimate_king_mitos_alsfrs.R (-> stage_king_mitos.csv). 
-
-- 
+Script files 
+- preprocess_predict.R (-> ALSFRS_rev.csv, PROACT_features_predict.csv)
+- preprocess_stage.R (-> PROACT_features_stage.csv)
+- survival.R (-> survival.csv)    
+- staging/estimate_king_mitos_alsfrs.R (-> stage_king_mitos.csv) 
+- staging/ALSFRS_rev_collapse.R (-> ALSFRS_rev_collapsed.csv)
+- staging/helper.R 
 
 ## 각 데이터 파일의 변수 설명   
 
@@ -63,8 +58,9 @@ Hidden states: disease stages
 Observable states: ALSFRS_rev dimension scores (bulbar, motor, respiratory) 
 
 **Why not using total scores?**   
-The results of dimensionality analysis argued against the use of ALSFRS-R total score as a single score because the scale lacks unidimensionality.   
+The results of dimensionality analysis argued against the use of ALSFRS-R total score as a single score because the scale lacks unidimensionality   
 https://pubmed.ncbi.nlm.nih.gov/23516308/    
+need to think about this... 
 
 **Strategy for aggregating items for dimension scores**     
 Based on the results of exploratory factor analysis, we use 3 domains as followings:    
@@ -74,6 +70,7 @@ Based on the results of exploratory factor analysis, we use 3 domains as followi
 
 **Collapsing 5 level ratings into 3 levels**
 Collapsing the scale's 5 level ratings into 3 levels improved its metric quality       
+need to think about this... 
 
 **Estimating clinical stages (King's and MiToS) from ALSFRS-R item scores**.    
 Estimate clinical stages from ALSFRS-R scores, and use this to construct the initial transition probability matrix for HMM.   
